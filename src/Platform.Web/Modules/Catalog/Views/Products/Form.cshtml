@@ -1,0 +1,192 @@
+@model Platform.Web.Modules.Catalog.ViewModels.ProductFormViewModel
+@{
+    var editing = Model.Id.HasValue;
+    ViewData["Title"] = editing ? "Ubah produk" : "Tambah produk";
+    ViewData["Nav"] = "Products/Index";
+}
+
+<div class="crumbs">
+    <a asp-controller="Products" asp-action="Index">Produk</a>
+    @UiIcons.Svg("chevron-right", 14)
+    <span>@ViewData["Title"]</span>
+</div>
+
+<div class="page-head">
+    <div>
+        <h1>@ViewData["Title"]</h1>
+        <p class="lead">
+            Stok selalu dihitung dalam satuan dasar.
+            Kemasan (Box, Dus, Krat) hanyalah cara memesan dalam jumlah besar.
+        </p>
+    </div>
+</div>
+
+<form asp-controller="Products"
+      asp-action="@(editing ? "Edit" : "Create")"
+      asp-route-id="@Model.Id"
+      method="post"
+      enctype="multipart/form-data"
+      data-once>
+
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <input type="hidden" asp-for="Id" />
+
+    <div class="split">
+        <div class="card">
+            <div class="card-head">
+                <h2>@UiIcons.Svg("package", 21) Data produk</h2>
+            </div>
+
+            <div class="form-grid">
+                <div class="field">
+                    <label asp-for="Name"></label>
+                    <input asp-for="Name" />
+                    <span asp-validation-for="Name" class="field-validation-error"></span>
+                </div>
+
+                <div class="field">
+                    <label asp-for="Sku"></label>
+                    <input asp-for="Sku" />
+                    <span asp-validation-for="Sku" class="field-validation-error"></span>
+                </div>
+
+                <div class="field">
+                    <label asp-for="CategoryId"></label>
+                    <select asp-for="CategoryId" asp-items="Model.Categories">
+                        <option value="0">Pilih kategori</option>
+                    </select>
+                    <span asp-validation-for="CategoryId" class="field-validation-error"></span>
+                </div>
+
+                <div class="field">
+                    <label asp-for="BaseUnitName"></label>
+                    <input asp-for="BaseUnitName" placeholder="mis. Item, Kotak, Botol" />
+                    <span class="hint">Satuan terkecil yang dijual atau dihitung.</span>
+                    <span asp-validation-for="BaseUnitName" class="field-validation-error"></span>
+                </div>
+
+                <div class="field full">
+                    <label asp-for="Description"></label>
+                    <input asp-for="Description" />
+                    <span asp-validation-for="Description" class="field-validation-error"></span>
+                </div>
+
+                <div class="field full">
+                    <label asp-for="Image"></label>
+                    <div class="img-field">
+                        <partial name="_ProductThumb" model="new ProductThumbModel(Model.ImagePath, Model.Name, 96)" />
+                        <div class="grow">
+                            <input asp-for="Image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-img-input />
+                            <span class="hint">JPG, PNG, WebP, atau GIF, maksimal 2 MB. Gambar ini tampil di katalog, kasir, dan pesanan. Hanya pemilik usaha yang dapat mengubahnya.</span>
+                            @if (!string.IsNullOrEmpty(Model.ImagePath))
+                            {
+                                <label class="check mt-1"><input type="checkbox" asp-for="RemoveImage" /> Hapus gambar saat ini</label>
+                            }
+                            <span asp-validation-for="Image" class="field-validation-error"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stack" style="--gap:18px">
+            @if (Model.ShowWholesale)
+            {
+                <div class="card">
+                    <div class="card-head">
+                        <h2>@UiIcons.Svg("wallet", 21) Harga grosir</h2>
+                    </div>
+
+                    <div class="field mb-0">
+                        <label asp-for="BaseWholesalePrice"></label>
+                        <div class="input-group">
+                            <span class="addon">Rp</span>
+                            <input asp-for="BaseWholesalePrice"
+                                   inputmode="decimal"
+                                   placeholder="mis. 3000" />
+                        </div>
+                        <span class="hint">
+                            Harga per satuan dasar. Harga kemasan diisi di bawah.
+                        </span>
+                    </div>
+
+                    <div class="field mt-1 mb-0">
+                        <label asp-for="MoqBase"></label>
+                        <input asp-for="MoqBase" type="number" min="1" max="1000000" inputmode="numeric" />
+                        <span asp-validation-for="MoqBase" class="field-validation-error"></span>
+                        <span class="hint">
+                            Pembeli tidak dapat memesan produk ini di bawah jumlah tersebut (1 = tanpa minimum).
+                        </span>
+                    </div>
+                </div>
+            }
+
+            <button type="submit" class="btn btn-lg btn-block">
+                @UiIcons.Svg("check", 20) Simpan produk
+            </button>
+
+            <a class="btn btn-ghost btn-block"
+               href="@Url.Action("Index", "Products")">
+                Batal
+            </a>
+        </div>
+    </div>
+
+    @if (Model.ShowPackaging)
+    {
+        <div class="card mt-2">
+            <div class="card-head">
+                <h2>@UiIcons.Svg("boxes", 21) Kemasan (opsional)</h2>
+            </div>
+
+            <p class="muted small">
+                Isi hanya bila produk dijual dalam kemasan.
+                Contoh: Box dengan isi 40 berarti 1 Box = 40 @Model.BaseUnitName.
+            </p>
+
+            <div class="table-wrap">
+                <table class="table table-stack">
+                    <thead>
+                        <tr>
+                            <th>Nama kemasan</th>
+                            <th>Isi (satuan dasar)</th>
+                            @if (Model.ShowWholesale)
+                            {
+                                <th>Harga grosir</th>
+                            }
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @for (var i = 0; i < Model.Units.Count; i++)
+                        {
+                            <tr>
+                                <td data-label="Nama kemasan">
+                                    <input asp-for="Units[i].UnitName" placeholder="Box" />
+                                </td>
+
+                                <td data-label="Isi">
+                                    <input asp-for="Units[i].ConversionToBase"
+                                           inputmode="numeric"
+                                           placeholder="40" />
+                                </td>
+
+                                @if (Model.ShowWholesale)
+                                {
+                                    <td data-label="Harga grosir">
+                                        <div class="input-group">
+                                            <span class="addon">Rp</span>
+                                            <input asp-for="Units[i].WholesalePrice"
+                                                   inputmode="decimal"
+                                                   placeholder="120000" />
+                                        </div>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</form>

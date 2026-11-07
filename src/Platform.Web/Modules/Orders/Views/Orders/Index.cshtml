@@ -1,0 +1,58 @@
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Orders.Domain
+@model IReadOnlyList<OrderSummaryDto>
+@{
+    var isSeller = ViewData["IsSeller"] is true;
+    var isLivestock = ViewData["IsLivestock"] is true;
+    var current = ViewData["Status"] as OrderStatus?;
+    ViewData["Title"] = isLivestock ? "Penjualan ke agen" : isSeller ? "Pesanan masuk" : "Pesanan saya";
+    var filters = new OrderStatus?[] { null, OrderStatus.Pending, OrderStatus.Accepted, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Delivered, OrderStatus.PickedUp, OrderStatus.Completed, OrderStatus.Rejected, OrderStatus.Cancelled };
+}
+
+<div class="page-head">
+    <div>
+        <h1>@(isLivestock ? "Penjualan ke agen" : isSeller ? "Pesanan & pasokan" : "Pesanan saya")</h1>
+        <p class="lead">@(isLivestock ? "Riwayat penjualan hasil ternak ke agen dan status penerimaannya." : isSeller ? "Kelola pesanan dari warung dan konfirmasi penerimaan pasokan dari peternakan." : "Pantau fase pesanan Anda ke grosir. Konfirmasi saat barang tiba agar stok bertambah.")</p>
+    </div>
+    @if (!isSeller)
+    {
+        <div class="page-actions"><a class="btn" asp-controller="Marketplace" asp-action="Index">@UiIcons.Svg("plus", 18) Pesan ke grosir</a><a class="btn btn-secondary" asp-controller="Deals" asp-action="Index">@UiIcons.Svg("badge-percent", 18) Promo</a></div>
+    }
+</div>
+
+<div class="chips scroll mb-2" role="tablist" aria-label="Filter status">
+    @foreach (var s in filters)
+    {
+        <a class="chip @(current == s ? "active" : "")" asp-action="Index" asp-route-status="@s">@(s is null ? "Semua" : OrderLabels.Status(s.Value))</a>
+    }
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("inbox", 30)</div><h3>Belum ada pesanan</h3><p>@(isSeller ? "Pesanan dari warung dan penyerahan pasokan dari peternakan akan muncul di sini." : "Mulai dengan mencari grosir terdekat atau ambil promo anti-mubazir.")</p>@if (!isSeller) { <a class="btn" asp-controller="Marketplace" asp-action="Index">Cari grosir</a> }</div></div>
+}
+else
+{
+    <div class="card pad-0">
+        <div class="table-wrap">
+            <table class="table table-stack hover">
+                <thead><tr><th>Pesanan</th><th>Mitra</th><th>Barang</th><th>Cara</th><th class="right">Total</th><th>Status</th></tr></thead>
+                <tbody>
+                @foreach (var o in Model)
+                {
+                    var counterpart = isLivestock ? o.BuyerName : o.IsLivestockSale ? o.SellerName : isSeller ? o.BuyerName : o.SellerName;
+                    var counterpartLabel = isLivestock ? "Agen" : o.IsLivestockSale ? "Peternakan" : isSeller ? "Warung" : "Grosir";
+                    <tr class="order-row-link" data-row-link="@Url.Action("Detail", "Orders", new { id = o.Id })" tabindex="0" aria-label="Buka rincian pesanan @o.Number">
+                        <td class="cell-title"><span class="name">@o.Number</span><span class="sub">@IdFormat.Stamp(o.CreatedAt)</span></td>
+                        <td data-label="Mitra"><span class="sub">@counterpartLabel</span><b>@counterpart</b></td>
+                        <td data-label="Barang" class="small" style="max-width:320px">@o.ItemsText @if (o.HasBundle) { <span class="badge badge-tag">@UiIcons.Svg("leaf", 12) Paket</span> }</td>
+                        <td data-label="Cara">@OrderLabels.Fulfillment(o.Fulfillment)</td>
+                        <td class="right num" data-label="Total"><b>@Rupiah.Format(o.TotalAmount)</b></td>
+                        <td data-label="Status"><span class="@OrderLabels.BadgeClass(o.Status)">@OrderLabels.Status(o.Status)</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

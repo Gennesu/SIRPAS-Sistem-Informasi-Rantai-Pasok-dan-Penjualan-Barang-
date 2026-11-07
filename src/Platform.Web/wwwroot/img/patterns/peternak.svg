@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" fill="none">
+  <g stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(20 18) rotate(-9 22 22)" stroke="#607D55" stroke-opacity=".3">
+      <path d="m10 12-7-7 3 15m26-8 7-7-3 15"/>
+      <path d="M8 15c0-7 6-11 14-11s14 4 14 11v11c0 8-6 13-14 13S8 34 8 26z" fill="#B9C99D" fill-opacity=".14"/>
+      <path d="M14 20h.01m16 0h.01M16 29c4 3 8 3 12 0M15 14c2 3 4 4 7 4s5-1 7-4"/>
+    </g>
+    <g transform="translate(242 27) rotate(11 21 22)" stroke="#668FA1" stroke-opacity=".29">
+      <path d="M12 4h18M15 4v8l-5 7v24a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V19l-5-7V4"/>
+      <path d="M10 27h22M17 34h8" fill="#9EC8C7" fill-opacity=".18"/>
+    </g>
+    <g transform="translate(93 152) rotate(-14 22 22)" stroke="#C58C43" stroke-opacity=".31">
+      <path d="M22 3C15 3 7 17 7 28a15 15 0 0 0 30 0C37 17 29 3 22 3Z" fill="#F0D48D" fill-opacity=".2"/>
+      <path d="M16 28c3-3 9-3 12 0"/>
+    </g>
+    <g transform="translate(269 172) rotate(13 22 22)" stroke="#C47754" stroke-opacity=".3">
+      <path d="M7 27c0-9 7-15 17-15 9 0 15 5 15 12s-7 12-16 12c-5 0-10-2-13-5l-6 1 3-6Z" fill="#E7B18B" fill-opacity=".17"/>
+      <path d="M20 12c-4-5 1-8 4-4 2-5 7-2 5 3m9 8 9 3-9 3m-15 2c4 3 7 2 10 0"/>
+      <circle cx="31" cy="19" r="1" fill="#C47754"/>
+    </g>
+    <g transform="translate(28 278) rotate(8 18 18) scale(.78)" stroke="#C58C43" stroke-opacity=".27">
+      <path d="M22 3C15 3 7 17 7 28a15 15 0 0 0 30 0C37 17 29 3 22 3Z" fill="#F0D48D" fill-opacity=".16"/>
+    </g>
+    <g transform="translate(188 286) rotate(-12 21 22) scale(.78)" stroke="#668FA1" stroke-opacity=".28">
+      <path d="M12 4h18M15 4v8l-5 7v24a3 3 0 0 0 3 3h16a3 3 0 0 0 3-3V19l-5-7V4M10 27h22" fill="#9EC8C7" fill-opacity=".12"/>
+    </g>
+    <g transform="translate(183 112) rotate(21 12 12)" stroke="#789064" stroke-opacity=".27">
+      <path d="M5 22c0-9 7-16 17-17-1 10-8 17-17 17Zm0 0c2-7 7-12 14-15"/>
+      <path d="M7 25c4 0 8 2 10 6"/>
+    </g>
+  </g>
+</svg>

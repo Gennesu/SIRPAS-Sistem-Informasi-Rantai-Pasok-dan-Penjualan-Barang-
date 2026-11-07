@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Teh lemon 350 ml">
+<title>Teh lemon 350 ml</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbd2"/><stop offset="1" stop-color="#f9ee9a"/></linearGradient>
+<linearGradient id="sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<rect width="320" height="200" fill="url(#bg)"/>
+<circle cx="270" cy="36" r="46" fill="#fff" opacity=".3"/>
+<circle cx="48" cy="170" r="36" fill="#fff" opacity=".22"/>
+<ellipse cx="160" cy="181" rx="78" ry="8" fill="#000" opacity=".13"/>
+<clipPath id="bt"><path d="M125.0 162 Q125.0 174 137.0 174 L183.0 174 Q195.0 174 195.0 162 L195.0 96 Q195.0 82 180 72 L173 58 L173 40 L147 40 L147 58 L140 72 Q125.0 82 125.0 96 Z"/></clipPath>
+<path d="M125.0 162 Q125.0 174 137.0 174 L183.0 174 Q195.0 174 195.0 162 L195.0 96 Q195.0 82 180 72 L173 58 L173 40 L147 40 L147 58 L140 72 Q125.0 82 125.0 96 Z" fill="#ffffff" opacity=".55"/>
+<g clip-path="url(#bt)"><rect x="125.0" y="70" width="70" height="110" fill="#d9a21b"/>
+<rect x="125.0" y="100" width="70" height="46" fill="#ffffff"/>
+<rect x="131.0" y="62" width="9" height="104" rx="4.5" fill="#ffffff" opacity=".38"/></g>
+<path d="M125.0 162 Q125.0 174 137.0 174 L183.0 174 Q195.0 174 195.0 162 L195.0 96 Q195.0 82 180 72 L173 58 L173 40 L147 40 L147 58 L140 72 Q125.0 82 125.0 96 Z" fill="none" stroke="#000" stroke-opacity=".14" stroke-width="1.5"/>
+<rect x="145" y="24" width="30" height="18" rx="4" fill="#f0c808"/>
+<path d="M152 28 v10 M160 28 v10 M168 28 v10" stroke="#000" stroke-opacity=".18" stroke-width="2"/>
+<circle cx="160" cy="154" r="9" fill="#ffe066" stroke="#f0c808" stroke-width="2"/><path d="M160 145 v18 M151 154 h18" stroke="#f0c808" stroke-width="1.5"/>
+<text x="160" y="118" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="11" fill="#9a6b00" >TEH LEMON</text>
+<text x="160" y="132" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="600" font-size="9" fill="#9a6b00" >350 ml</text>
+</svg>

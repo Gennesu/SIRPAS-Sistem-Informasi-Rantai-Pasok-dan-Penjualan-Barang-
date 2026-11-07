@@ -1,0 +1,41 @@
+@using Platform.Web.Modules.Consumers.Contracts
+@using Platform.Web.Modules.Orders.Contracts
+@{
+    ViewData["Title"] = "Beranda pembeli";
+    var orders = ViewData["Orders"] as IReadOnlyList<ConsumerOrderSummaryDto> ?? Array.Empty<ConsumerOrderSummaryDto>();
+    var promos = ViewData["Promos"] as IReadOnlyList<PromoDealDto> ?? Array.Empty<PromoDealDto>();
+    var hour = WibTime.ToWib(DateTime.UtcNow).Hour;
+    var salam = hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam";
+}
+<div class="greet mt-2">
+    <div><h1>@salam, @User.Identity?.Name</h1><p>Belanja kebutuhan harian dari warung terdekat. Cek promo produk yang masih layak konsumsi.</p></div>
+    <div class="g-actions">
+        <a class="btn btn-lg" asp-controller="Shop" asp-action="Index">@UiIcons.Svg("store", 20) Belanja di warung</a>
+        <a class="btn btn-lg btn-secondary" asp-controller="ConsumerOrders" asp-action="Index">@UiIcons.Svg("receipt", 20) Pesanan saya</a>
+    </div>
+</div>
+<div class="split mt-2">
+    <div class="card"><div class="card-head"><h2>@UiIcons.Svg("receipt", 21) Pesanan terbaru</h2></div>
+        @if (orders.Count == 0) { <p class="muted">Belum ada pesanan. Mulai dari <a asp-controller="Shop" asp-action="Index">katalog warung</a>.</p> }
+        else
+        {
+            <ul>@foreach (var o in orders) {
+                <li><a asp-controller="ConsumerOrders" asp-action="Details" asp-route-id="@o.Id"><b>@o.Number</b></a> &middot; @o.PartyName &middot; @Rupiah.Format(o.TotalAmount) &middot; <span class="@OrderLabels.BadgeClass(o.Status)">@OrderLabels.Status(o.Status)</span></li> }
+            </ul>
+        }
+    </div>
+    <div class="card"><div class="card-head"><h2>@UiIcons.Svg("badge-percent", 21) Promo layak konsumsi</h2></div>
+        @if (promos.Count == 0) { <p class="muted">Belum ada promo hari ini.</p> }
+        else
+        {
+            <ul class="plist">@foreach (var d in promos.Take(5)) {
+                <li>
+                    <partial name="_ProductThumb" model="new ProductThumbModel(d.ImagePath, d.ProductName, 48)" />
+                    <div class="grow"><b>@d.ProductName</b> <span class="badge badge-warn">-@d.Percent%</span><span>@d.ShopName &middot; kedaluwarsa @WibTime.Format(d.NearestExpiry)</span></div>
+                    <a class="btn btn-sm btn-secondary" asp-controller="Shop" asp-action="Detail" asp-route-id="@d.ShopId">Beli</a>
+                </li> }
+            </ul>
+            <a class="btn btn-secondary" asp-controller="Shop" asp-action="Promos">Lihat semua promo</a>
+        }
+    </div>
+</div>

@@ -1,0 +1,89 @@
+@{
+    ViewData["Title"] = "Beranda";
+    ViewData["Bare"] = true;
+}
+<header class="lp-nav">
+    <a class="brand" asp-controller="Home" asp-action="Index"><span class="brand-mark">@UiIcons.Svg("leaf", 22)</span><span>SIRPAS<small>Sistem Informasi Rantai Pasok</small></span></a>
+    <nav class="links" aria-label="Bagian halaman"><a href="#fitur">Fitur</a><a href="#alur">Alur</a></nav>
+    <div class="row"><a class="btn btn-secondary" asp-controller="Account" asp-action="Login">Masuk</a><a class="btn" asp-controller="Business" asp-action="Register">Daftar</a></div>
+</header>
+
+<section class="lp-hero">
+    <div>
+        <span class="badge badge-tag">@UiIcons.Svg("leaf", 14) Anti food waste untuk grosir &amp; warung</span>
+        <h1 class="mt-1">Stok laku, <em>bukan terbuang.</em></h1>
+        <p class="lead">Grosir melihat barang yang hampir kadaluarsa, membuat paket diskon, lalu menawarkannya ke warung yang paling laku menjualnya. Ongkir dihitung dari jarak, pesanan dilacak per fase di peta.</p>
+        <div class="row">
+            <a class="btn btn-lg" asp-controller="Business" asp-action="Register">Daftarkan usaha</a>
+            <a class="btn btn-lg btn-secondary" asp-controller="Account" asp-action="Login">Coba akun demo</a>
+        </div>
+        <div class="lp-stats">
+            <div><b>Diskon otomatis</b><span>harga paket mendekati kadaluarsa</span></div>
+            <div><b>Ongkir per km</b><span>tarif dasar + jarak tempuh</span></div>
+            <div><b>Struk 58/80 mm</b><span>cetak atau kirim WhatsApp</span></div>
+        </div>
+    </div>
+    <div class="lp-gallery" data-lp-gallery role="region" aria-roledescription="carousel" aria-label="Foto perjalanan produk dan usaha">
+        <figure class="lp-gallery-slide is-active" data-lp-slide aria-label="1 dari 3" aria-hidden="false">
+            <img src="~/img/landing/warung-depan.jpeg" alt="Bagian depan warung kelontong di lingkungan sekitar" fetchpriority="high" />
+            <figcaption><span>Usaha lokal</span><strong>Warung yang jadi tujuan distribusi</strong></figcaption>
+        </figure>
+        <figure class="lp-gallery-slide" data-lp-slide aria-label="2 dari 3" aria-hidden="true">
+            <img src="~/img/landing/isi-warung.jpeg" alt="Rak dan aneka produk kebutuhan sehari-hari di dalam warung" loading="lazy" />
+            <figcaption><span>Produk harian</span><strong>Stok tertata, siap sampai ke pelanggan</strong></figcaption>
+        </figure>
+        <figure class="lp-gallery-slide" data-lp-slide aria-label="3 dari 3" aria-hidden="true">
+            <img src="~/img/landing/rantai-pasok.jpeg" alt="Lorong kandang ternak sebagai bagian dari rantai pasok" loading="lazy" />
+            <figcaption><span>Rantai pasok</span><strong>Dari sumber produk hingga ke warung</strong></figcaption>
+        </figure>
+        <div class="lp-gallery-topline"><b data-lp-counter aria-hidden="true">01 / 03</b></div>
+        <button class="lp-gallery-arrow is-prev" type="button" data-lp-prev aria-label="Foto sebelumnya"><span aria-hidden="true">&#8249;</span></button>
+        <button class="lp-gallery-arrow is-next" type="button" data-lp-next aria-label="Foto berikutnya"><span aria-hidden="true">&#8250;</span></button>
+        <div class="lp-gallery-dots" role="group" aria-label="Pilih foto">
+            <button type="button" class="is-active" data-lp-dot="0" aria-label="Tampilkan foto 1" aria-pressed="true"></button>
+            <button type="button" data-lp-dot="1" aria-label="Tampilkan foto 2" aria-pressed="false"></button>
+            <button type="button" data-lp-dot="2" aria-label="Tampilkan foto 3" aria-pressed="false"></button>
+        </div>
+    </div>
+</section>
+
+<section class="lp-section" id="fitur">
+    <h2>Fitur di setiap tahap rantai pasok</h2>
+    <p class="lead">Peternak, grosir, warung, dan pembeli terhubung dalam satu alur stok dan pesanan.</p>
+    <div class="grid grid-3">
+        <div class="lp-feature"><span class="f-ico">@UiIcons.Svg("package", 24)</span><h3>Produksi peternak</h3><p>Catat hasil produksi atau panen agar stok bertambah, lalu tawarkan produk kepada grosir yang terverifikasi.</p></div>
+        <div class="lp-feature"><span class="f-ico">@UiIcons.Svg("warehouse", 24)</span><h3>Stok dan katalog grosir</h3><p>Kelola produk, stok per batch, dan tanggal kedaluwarsa. Grosir dapat menerima pasokan dari peternak dan melayani pesanan warung.</p></div>
+        <div class="lp-feature"><span class="f-ico">@UiIcons.Svg("store", 24)</span><h3>Belanja dan kasir warung</h3><p>Warung mencari grosir, memesan kebutuhan, memantau pesanan, serta mencatat penjualan langsung melalui kasir.</p></div>
+        <div class="lp-feature"><span class="f-ico">@UiIcons.Svg("shopping-basket", 24)</span><h3>Katalog pembeli</h3><p>Pembeli melihat produk dan promo dari warung, membuat pesanan, lalu memantau statusnya. Pembayaran simulasi ditandai sebagai demo.</p></div>
+        <div class="lp-feature"><span class="f-ico">@UiIcons.Svg("gift", 24)</span><h3>Promo anti-mubazir</h3><p>Grosir dapat membuat paket diskon dan menawarkannya ke warung. Warung juga dapat memberi promo pada stok yang mendekati kedaluwarsa.</p></div>
+        <div class="lp-feature"><span class="f-ico">@UiIcons.Svg("map-pin", 24)</span><h3>Peta, jarak, dan status pesanan</h3><p>Temukan lokasi usaha dan lihat perkiraan jarak serta ongkir. Pelacakan menampilkan fase pesanan; posisi kendaraan bukan GPS langsung.</p></div>
+    </div>
+</section>
+
+<section class="lp-section" id="alur">
+    <h2>Alur rantai pasok SIRPAS</h2>
+    <p class="lead">Produk bergerak dari peternak ke grosir, warung, lalu pembeli akhir. Stok dan status pesanan tercatat di setiap tahap.</p>
+    <ol class="lp-steps">
+        <li>
+            <div class="lp-step-head"><b>Peternak mencatat produksi</b><span class="lp-step-icon">@UiIcons.Svg("package", 20)</span></div>
+            <p>Hasil produksi atau panen menambah stok. Peternak dapat menjual produk kepada agen terverifikasi.</p>
+        </li>
+        <li>
+            <div class="lp-step-head"><b>Grosir mengelola pasokan</b><span class="lp-step-icon">@UiIcons.Svg("warehouse", 20)</span></div>
+            <p>Grosir menerima pasokan, mengatur stok dan harga, serta memantau tanggal kedaluwarsa.</p>
+        </li>
+        <li>
+            <div class="lp-step-head"><b>Warung memesan barang</b><span class="lp-step-icon">@UiIcons.Svg("store", 20)</span></div>
+            <p>Warung mencari grosir, memesan barang atau mengambil penawaran, lalu mengikuti status pengiriman.</p>
+        </li>
+        <li>
+            <div class="lp-step-head"><b>Pembeli berbelanja</b><span class="lp-step-icon">@UiIcons.Svg("shopping-basket", 20)</span></div>
+            <p>Pembeli berbelanja melalui katalog warung. Warung juga dapat mencatat penjualan langsung lewat kasir.</p>
+        </li>
+    </ol>
+    <p class="lp-flow-note"><b>Anti-mubazir:</b> Grosir dapat menawarkan paket diskon kepada warung, dan warung dapat membuat promo untuk pembeli akhir dari stok yang mendekati kedaluwarsa.</p>
+</section>
+
+<footer class="lp-foot">
+    <div class="inner"><span><b style="color:#fff">SIRPAS</b> — Sistem Informasi Rantai Pasok dan Penjualan Barang. Proyek kuliah, siap dipakai di lapangan.</span><span class="row"><a style="color:#fff" asp-controller="Account" asp-action="Login">Masuk</a><a style="color:var(--tag)" asp-controller="Business" asp-action="Register">Daftar</a></span></div>
+</footer>

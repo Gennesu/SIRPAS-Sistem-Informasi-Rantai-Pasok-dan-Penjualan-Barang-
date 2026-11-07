@@ -1,0 +1,98 @@
+@using System.Globalization
+@model Platform.Web.Modules.Map.Contracts.LivestockMapDto
+@{
+    ViewData["Title"] = "Peta peternakan terdekat";
+    var inv = CultureInfo.InvariantCulture;
+    var nearest = Model.Farms.FirstOrDefault(f => f.DistanceKm.HasValue);
+    static string WaLink(string phone)
+    {
+        var digits = new string((phone ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("0")) digits = "62" + digits[1..];
+        return "https://wa.me/" + digits;
+    }
+}
+@section Styles { <partial name="_MapStyles" /> }
+
+<div class="page-head">
+    <div>
+        <h1>Peta peternakan terdekat</h1>
+        <p class="lead">Temukan peternakan aktif dan terverifikasi di sekitar lokasi agen. Jarak diurutkan berdasarkan garis lurus; pilih titik untuk melihat perkiraan rute jalan.</p>
+    </div>
+</div>
+
+<partial name="_AgentMapSwitcher" />
+
+@if (Model.OriginLat is null || Model.OriginLon is null)
+{
+    <div class="alert alert-warn">@UiIcons.Svg("map-pin", 20)<div class="grow"><b>Lokasi agen belum diisi.</b> Daftar peternakan tetap tampil, tetapi jarak belum dapat diurutkan dari lokasi Anda. <a asp-controller="Business" asp-action="Profile"><b>Atur lokasi di Profil</b></a></div></div>
+}
+
+<div class="grid grid-3 kpis mb-2">
+    <div class="kpi"><div class="row-between"><span class="k-label">Peternakan di peta</span><span class="k-ico">@UiIcons.Svg("warehouse", 20)</span></div><div class="k-value">@Model.Farms.Count</div></div>
+    <div class="kpi blue"><div class="row-between"><span class="k-label">Peternakan terdekat</span><span class="k-ico">@UiIcons.Svg("map-pin", 20)</span></div><div class="k-value">@(nearest?.DistanceKm is double km ? $"{km:0.0} km" : "—")</div><div class="k-note">Jarak garis lurus dari lokasi agen.</div></div>
+    <div class="kpi tag"><div class="row-between"><span class="k-label">Belum ada titik lokasi</span><span class="k-ico">@UiIcons.Svg("map-pin", 20)</span></div><div class="k-value">@Model.FarmsWithoutLocation</div></div>
+</div>
+
+<div class="map-shell" data-map-explorer data-mode="retail" data-route="1"
+     data-origin-lat="@Model.OriginLat?.ToString(inv)" data-origin-lon="@Model.OriginLon?.ToString(inv)" data-origin-name="@Model.OriginName" data-origin-label="Lokasi agen">
+    <section class="map-panel" aria-label="Daftar peternakan">
+        <div class="map-panel-head">
+            <div class="search-box">@UiIcons.Svg("search", 18)<input type="search" id="q" placeholder="Cari nama peternakan" autocomplete="off" aria-label="Cari peternakan" /></div>
+            <div class="chips scroll" id="filters">
+                <button type="button" class="chip active" data-filter="all">Semua <span class="count">@Model.Farms.Count</span></button>
+                <button type="button" class="chip" data-filter="near">&le; 5 km</button>
+            </div>
+        </div>
+        <div class="map-list" id="list">
+            @foreach (var farm in Model.Farms)
+            {
+                var phoneDigits = new string((farm.Phone ?? string.Empty).Where(char.IsDigit).ToArray());
+                var kind = farm.DistanceKm is <= 5 ? "shop" : "prospect";
+                <article class="map-card prospect" tabindex="0" data-card data-id="@farm.BusinessId" data-kind="@kind"
+                         data-lat="@farm.Latitude.ToString(inv)" data-lon="@farm.Longitude.ToString(inv)" data-name="@farm.Name"
+                         data-distance="@farm.DistanceKm?.ToString(inv)" data-search="@farm.Name.ToLowerInvariant()" data-label="">
+                    <span class="m-ico">@UiIcons.Svg("warehouse", 22)</span>
+                    <div>
+                        <h3>@farm.Name</h3>
+                        <div class="muted small">@farm.Address</div>
+                        <div class="m-meta">
+                            @if (farm.DistanceKm is double distance) { <span>@UiIcons.Svg("map-pin", 13) @distance.ToString("0.0") km</span> }
+                            else { <span>@UiIcons.Svg("map-pin", 13) Jarak belum diketahui</span> }
+                        </div>
+                        <div class="m-badges"><span class="badge badge-ok">Peternakan terverifikasi</span></div>
+                    </div>
+                    <template class="pop">
+                        <div class="pop">
+                            <h3>@farm.Name</h3>
+                            <div class="p-addr">@farm.Address</div>
+                            <div class="p-grid"><div><small>Jarak garis lurus</small><b>@(farm.DistanceKm is double kmAway ? $"{kmAway:0.0} km" : "Belum diketahui")</b></div><div><small>Status</small><b>Aktif &amp; terverifikasi</b></div></div>
+                            @if (!string.IsNullOrWhiteSpace(farm.Phone))
+                            {
+                                <p class="small mb-1">@UiIcons.Svg("phone", 14) <a href="@WaLink(farm.Phone)" target="_blank" rel="noopener">Hubungi peternakan (@farm.Phone)</a></p>
+                                <a class="btn btn-sm" href="tel:@phoneDigits">Telepon</a>
+                            }
+                        </div>
+                    </template>
+                </article>
+            }
+            @if (Model.Farms.Count == 0)
+            {
+                <div class="empty"><div class="e-ico">@UiIcons.Svg("map", 28)</div><h3>Belum ada peternakan di peta</h3><p>Peternakan aktif dan terverifikasi dengan lokasi terisi akan muncul di sini.</p></div>
+            }
+            <div class="empty hide" id="no-match"><h3>Tidak ada peternakan yang cocok</h3><p>Ubah kata kunci atau filter jarak.</p></div>
+        </div>
+    </section>
+    <section class="map-canvas" aria-label="Peta peternakan">
+        <div class="map-el"></div>
+        <div class="map-hud">
+            <button type="button" class="hud-btn" id="btn-me">@UiIcons.Svg("locate-fixed", 17) Lokasi saya</button>
+            <button type="button" class="hud-btn" id="btn-fit">@UiIcons.Svg("map", 17) Tampilkan semua</button>
+        </div>
+        <div class="map-legend"><span><i style="background:#a8531b"></i>Peternakan</span><span><i style="background:#2563c9"></i>Lokasi agen</span></div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_MapScripts" />
+    <script src="~/js/map-explorer.js" asp-append-version="true"></script>
+}

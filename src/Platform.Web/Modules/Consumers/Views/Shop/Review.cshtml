@@ -1,0 +1,63 @@
+@using Platform.Web.Modules.Consumers.Contracts
+@using Platform.Web.Modules.Consumers.Domain
+@using Platform.Web.Modules.Delivery.Contracts
+@model Platform.Web.Modules.Consumers.ViewModels.ShopOrderInput
+@{
+    ViewData["Title"] = "Konfirmasi pesanan";
+    ViewData["Nav"] = "Shop/Index";
+    var preview = (ConsumerOrderPreviewDto)ViewData["Preview"]!;
+}
+<div class="crumbs"><a asp-action="Index">Belanja di warung</a> @UiIcons.Svg("chevron-right", 14) <a asp-action="Detail" asp-route-id="@Model.SellerBusinessId">@preview.SellerName</a> @UiIcons.Svg("chevron-right", 14) <span>Konfirmasi</span></div>
+<div class="page-head"><div><h1>Konfirmasi pesanan</h1><p class="lead">Harga, promo, dan ongkir dihitung ulang oleh server. Stok baru dicadangkan setelah Anda menekan "Buat pesanan".</p></div></div>
+
+<div class="split">
+    <div class="card pad-0"><div class="table-wrap"><table class="table table-stack">
+        <thead><tr><th>Barang</th><th class="right">Jumlah</th><th class="right">Harga</th><th class="right">Subtotal</th></tr></thead>
+        <tbody>
+        @foreach (var i in preview.Items)
+        {
+            <tr>
+                <td data-label="Barang" class="cell-title">
+                    <div class="pcell">
+                        <partial name="_ProductThumb" model="new ProductThumbModel(i.ImagePath, i.ProductName, 52)" />
+                        <div class="grow"><b>@i.ProductName</b>@if (i.IsPromo) { <div class="small"><span class="badge badge-warn">promo -@i.PromoPercent%</span> kedaluwarsa @(i.ExpiryDate is DateOnly e ? WibTime.Format(e) : "-")</div> }</div>
+                    </div>
+                </td>
+                <td data-label="Jumlah" class="right num">@i.QtyBase @i.BaseUnitName</td>
+                <td data-label="Harga" class="right num">@if (i.IsPromo) { <s class="muted">@Rupiah.Format(i.RegularUnitPrice)</s> } @Rupiah.Format(i.UnitPrice)</td>
+                <td data-label="Subtotal" class="right num">@Rupiah.Format(i.Subtotal)</td>
+            </tr>
+        }
+        </tbody>
+    </table></div></div>
+    <div class="card">
+        <dl class="kv">
+            <dt>Cara terima</dt><dd>@OrderLabels(preview.Fulfillment)@(preview.DeliveryAddress is { Length: > 0 } ? " ke " + preview.DeliveryAddress : "")</dd>
+            <dt>Pembayaran</dt><dd>@PayText(Model.PaymentMethod)</dd>
+            <dt>Subtotal</dt><dd>@Rupiah.Format(preview.Subtotal)</dd>
+            <dt>Ongkir</dt><dd>@Rupiah.Format(preview.DeliveryFee)</dd>
+            @if (preview.Savings > 0) { <dt>Hemat promo</dt><dd>@Rupiah.Format(preview.Savings)</dd> }
+            <dt><b>Total</b></dt><dd><b>@Rupiah.Format(preview.Total)</b></dd>
+        </dl>
+        <form asp-action="Place" method="post" data-once>
+            <input type="hidden" name="SellerBusinessId" value="@Model.SellerBusinessId" />
+            <input type="hidden" name="Fulfillment" value="@Model.Fulfillment" />
+            <input type="hidden" name="PaymentMethod" value="@Model.PaymentMethod" />
+            <input type="hidden" name="DeliveryAddress" value="@Model.DeliveryAddress" />
+            <input type="hidden" name="Note" value="@Model.Note" />
+            <input type="hidden" name="IdempotencyKey" value="@Model.IdempotencyKey" />
+            @foreach (var kv in Model.Qty.Where(k => k.Value > 0)) { <input type="hidden" name="Qty[@kv.Key]" value="@kv.Value" /> }
+            <button class="btn btn-lg btn-block" type="submit">Buat pesanan</button>
+        </form>
+        <p class="muted small mt-1">Menekan dua kali atau memuat ulang tidak membuat pesanan ganda.</p>
+    </div>
+</div>
+@functions {
+    static string OrderLabels(FulfillmentType t) => t == FulfillmentType.Delivery ? "Diantar" : "Ambil sendiri";
+    static string PayText(PaymentMethod m) => m switch
+    {
+        PaymentMethod.CashOnPickup => "Bayar saat ambil (tunai)",
+        PaymentMethod.CashOnDelivery => "Bayar saat diterima (tunai)",
+        _ => "Simulasi pembayaran lokal (bukan uang nyata)"
+    };
+}

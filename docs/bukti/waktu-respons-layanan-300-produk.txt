@@ -1,0 +1,7 @@
+Kondisi uji: 1 warung x 300 produk; 1 grosir x 300 produk + 10 grosir x 30 produk; SQLite file; satu proses.
+Katalog produk warung (Products.ListAsync, 300 produk): median 8 ms, maks 12 ms (7 pengukuran)
+Halaman stok warung (Inventory.GetStockAsync, 300 produk): median 10 ms, maks 10 ms (7 pengukuran)
+Marketplace: cari grosir (11 grosir, 600 produk): median 25 ms, maks 29 ms (7 pengukuran)
+Marketplace: katalog satu grosir 300 produk: median 14 ms, maks 18 ms (7 pengukuran)
+Katalog pembeli: cari warung: median 6 ms, maks 10 ms (7 pengukuran)
+Katalog pembeli: toko 300 produk: median 6 ms, maks 6 ms (7 pengukuran)

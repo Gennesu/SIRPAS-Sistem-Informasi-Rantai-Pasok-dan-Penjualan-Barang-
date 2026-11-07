@@ -1,0 +1,53 @@
+@model Platform.Web.Modules.Purchasing.ViewModels.PurchaseFormViewModel
+@{
+    ViewData["Title"] = "Catat pembelian";
+    ViewData["Nav"] = "Purchases/Index";
+    var today = WibTime.TodayWib(TimeProvider.System);
+}
+
+<div class="crumbs"><a asp-controller="Purchases" asp-action="Index">Pembelian</a> @UiIcons.Svg("chevron-right", 14) <span>Catat baru</span></div>
+<div class="page-head">
+    <div>
+        <h1>Catat @(User.IsInRole(RoleNames.Grossier) ? "stok masuk" : "pembelian")</h1>
+        <p class="lead">Pilih produk dan satuan. Contoh: beli 2 Box Mi Instan @@ Rp120.000 per Box berarti stok bertambah 80 Item dengan modal Rp3.000 per Item. Isi <b>tanggal kadaluarsa</b> agar barang masuk ke dashboard food waste.</p>
+    </div>
+</div>
+
+<form asp-controller="Purchases" asp-action="Create" method="post" data-once class="card">
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <div class="form-grid">
+        <div class="field"><label asp-for="SupplierName"></label><input asp-for="SupplierName" placeholder="mis. Distributor Pusat" /><span asp-validation-for="SupplierName" class="field-validation-error"></span></div>
+        <div class="field"><label for="purchase-date">Tanggal</label><input id="purchase-date" type="date" name="Date" value="@Model.Date?.ToString("yyyy-MM-dd")" /></div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-stack" id="purchase-lines">
+            <thead><tr><th>Produk</th><th>Satuan</th><th>Jumlah</th><th>Harga per satuan</th><th>Kadaluarsa (opsional)</th><th class="right">Subtotal</th></tr></thead>
+            <tbody>
+            @for (var i = 0; i < Model.Lines.Count; i++)
+            {
+                var row = Model.Lines[i];
+                <tr class="pl-row">
+                    <td data-label="Produk">
+                        <select name="Lines[@i].ProductId" class="pl-product" aria-label="Produk">
+                            <option value="">— pilih —</option>
+                            @foreach (var p in Model.Products) { <option value="@p.Id" data-units="@p.UnitsText" selected="@(row.ProductId == p.Id)">@p.Name</option> }
+                        </select>
+                    </td>
+                    <td data-label="Satuan"><select name="Lines[@i].UnitName" class="pl-unit" data-selected="@row.UnitName" aria-label="Satuan"></select></td>
+                    <td data-label="Jumlah"><input name="Lines[@i].QtyPack" class="pl-qty" inputmode="numeric" value="@row.QtyPack" aria-label="Jumlah" /></td>
+                    <td data-label="Harga per satuan"><input name="Lines[@i].UnitPricePack" class="pl-price" inputmode="decimal" value="@row.UnitPricePack" aria-label="Harga" /></td>
+                    <td data-label="Kadaluarsa"><input type="date" name="Lines[@i].ExpiryDate" value="@row.ExpiryDate?.ToString("yyyy-MM-dd")" min="@today.AddYears(-1).ToString("yyyy-MM-dd")" aria-label="Kadaluarsa" /></td>
+                    <td data-label="Subtotal" class="right pl-sub num">Rp0</td>
+                </tr>
+            }
+            </tbody>
+            <tfoot><tr><td colspan="5" class="right">Total</td><td class="right" data-label="Total"><span id="pl-total">Rp0</span></td></tr></tfoot>
+        </table>
+    </div>
+
+    <div class="field mt-2"><label asp-for="Note"></label><input asp-for="Note" /></div>
+    <div class="form-actions"><button type="submit" class="btn btn-lg">@UiIcons.Svg("check", 20) Simpan &amp; tambahkan stok</button><a href="@Url.Action("Index", "Purchases")" class="btn btn-ghost">Batal</a></div>
+</form>
+
+@section Scripts { <script src="~/js/purchase.js" asp-append-version="true"></script> }

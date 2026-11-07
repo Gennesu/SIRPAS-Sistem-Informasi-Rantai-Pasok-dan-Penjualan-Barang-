@@ -1,0 +1,144 @@
+@model Platform.Web.Modules.Map.ViewModels.WarungMapViewModel
+@using System.Globalization
+@{
+    var d = Model.Data;
+    ViewData["Title"] = "Peta warung";
+    var inv = CultureInfo.InvariantCulture;
+    var customers = d.Warungs.Count(w => w.IsCustomer);
+    var prospects = d.Warungs.Count(w => !w.IsCustomer);
+    var inRange = d.Warungs.Count(w => w.InRange);
+    var spent = d.Warungs.Sum(w => w.TotalSpent);
+    var maxSold = d.Warungs.Where(w => w.SoldQtyBase.HasValue).Select(w => w.SoldQtyBase!.Value).DefaultIfEmpty(0).Max();
+    static string WaLink(string? phone)
+    {
+        var digits = new string((phone ?? "").Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("0")) digits = "62" + digits[1..];
+        return "https://wa.me/" + digits;
+    }
+}
+@section Styles { <partial name="_MapStyles" /> }
+
+<div class="page-head">
+    <div>
+        <h1>Peta persebaran warung</h1>
+        <p class="lead">Lihat warung langganan dan calon pelanggan di sekitar toko Anda, ongkir ke tiap titik, dan penjualan produk tertentu per warung.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-secondary" asp-controller="Delivery" asp-action="Index">@UiIcons.Svg("truck", 18) Atur ongkir</a><a class="btn btn-secondary" asp-controller="Insights" asp-action="Index">@UiIcons.Svg("chart-column", 18) Data penjualan</a></div>
+</div>
+
+<partial name="_AgentMapSwitcher" />
+
+@if (d.OriginLat is null)
+{
+    <div class="alert alert-warn">@UiIcons.Svg("map-pin", 20)<div class="grow"><b>Lokasi toko Anda belum diisi.</b> Jarak dan ongkir butuh titik lokasi. <a asp-controller="Business" asp-action="Profile"><b>Atur lokasi di Profil</b></a></div></div>
+}
+
+<div class="grid grid-4 kpis mb-2">
+    <div class="kpi"><div class="row-between"><span class="k-label">Warung langganan</span><span class="k-ico">@UiIcons.Svg("handshake", 20)</span></div><div class="k-value">@customers</div><div class="k-note">Pernah memesan ke Anda.</div></div>
+    <div class="kpi tag"><div class="row-between"><span class="k-label">Calon pelanggan</span><span class="k-ico">@UiIcons.Svg("users", 20)</span></div><div class="k-value">@prospects</div><div class="k-note">Warung terverifikasi di sekitar.</div></div>
+    <div class="kpi blue"><div class="row-between"><span class="k-label">Dalam jangkauan antar</span><span class="k-ico">@UiIcons.Svg("truck", 20)</span></div><div class="k-value">@inRange</div><div class="k-note">@(d.ServiceRadiusKm is double r ? $"Radius ±{r:0.#} km garis lurus" : "Tanpa batas jarak")</div></div>
+    <div class="kpi good"><div class="row-between"><span class="k-label">Total belanja langganan</span><span class="k-ico">@UiIcons.Svg("wallet", 20)</span></div><div class="k-value">@Rupiah.Format(spent)</div></div>
+</div>
+
+<form method="get" asp-action="Index" class="card tight mb-2">
+    <div class="row-between">
+        <label class="row" for="product" style="gap:12px"><b>@UiIcons.Svg("chart-column", 18) Tampilkan penjualan produk</b></label>
+        <div class="row" style="gap:10px;flex:1;justify-content:flex-end">
+            <select id="product" name="productId" data-autosubmit style="max-width:380px" aria-label="Pilih produk">
+                <option value="">Tanpa produk (lihat sebaran saja)</option>
+                @foreach (var p in d.Products) { <option value="@p.ProductId" selected="@(d.SelectedProductId == p.ProductId)">@p.Name (@p.TotalSoldBase terjual)</option> }
+            </select>
+            <noscript><button class="btn btn-sm" type="submit">Terapkan</button></noscript>
+        </div>
+    </div>
+    @if (d.SelectedProductName is not null)
+    {
+        <p class="hint mt-1 mb-0">Angka pada pin = jumlah <b>@d.SelectedProductName</b> terjual dalam 30 hari di warung itu (hanya warung yang membagikan data).</p>
+    }
+</form>
+
+<div class="map-shell" data-map-explorer data-mode="grosir"
+     data-origin-lat="@d.OriginLat?.ToString(inv)" data-origin-lon="@d.OriginLon?.ToString(inv)" data-origin-name="@d.OriginName" data-radius="@d.ServiceRadiusKm?.ToString(inv)">
+    <section class="map-panel" aria-label="Daftar warung">
+        <div class="map-panel-head">
+            <div class="search-box">@UiIcons.Svg("search", 18)<input type="search" id="q" placeholder="Cari nama warung" autocomplete="off" aria-label="Cari warung" /></div>
+            <div class="chips scroll" id="filters">
+                <button type="button" class="chip active" data-filter="all">Semua <span class="count">@d.Warungs.Count</span></button>
+                <button type="button" class="chip" data-filter="customer">Langganan <span class="count">@customers</span></button>
+                <button type="button" class="chip" data-filter="prospect">Calon <span class="count">@prospects</span></button>
+                <button type="button" class="chip" data-filter="range">Dalam jangkauan</button>
+            </div>
+        </div>
+        <div class="map-list" id="list">
+            @foreach (var w in d.Warungs)
+            {
+                var kind = !w.InRange ? "out" : w.IsCustomer ? "customer" : "prospect";
+                var label = w.SoldQtyBase is int sq && sq > 0 ? sq.ToString() : "";
+                <article class="map-card @(w.IsCustomer ? "" : "prospect") @(w.InRange ? "" : "out")" tabindex="0" data-card data-id="@w.BusinessId" data-kind="@kind"
+                         data-lat="@w.Latitude.ToString(inv)" data-lon="@w.Longitude.ToString(inv)" data-name="@w.Name" data-distance="@w.DistanceKm?.ToString(inv)"
+                         data-customer="@(w.IsCustomer ? "1" : "0")" data-inrange="@(w.InRange ? "1" : "0")" data-search="@w.Name.ToLowerInvariant()" data-label="@label">
+                    <span class="m-ico">@UiIcons.Svg(w.IsCustomer ? "store" : "house", 22)</span>
+                    <div>
+                        <h3>@w.Name</h3>
+                        <div class="muted small">@(w.IsCustomer ? w.Address : "Calon pelanggan, alamat tampil setelah memesan")</div>
+                        <div class="m-meta">
+                            @if (w.DistanceKm is double dk) { <span>@UiIcons.Svg("map-pin", 13) @dk.ToString("0.0") km</span> }
+                            @if (w.InRange) { <span>@UiIcons.Svg("truck", 13) Ongkir @(w.DeliveryFee is decimal fee ? Rupiah.Format(fee) : "—")</span> }
+                            else { <span style="color:var(--red-700)">@UiIcons.Svg("truck", 13) Di luar jangkauan</span> }
+                        </div>
+                        <div class="m-badges">
+                            @if (w.IsCustomer) { <span class="badge badge-ok">@UiIcons.Svg("handshake", 12) Langganan · @w.OrdersCount pesanan</span> }
+                            else { <span class="badge badge-muted">Calon pelanggan</span> }
+                            @if (w.SoldQtyBase is int sold) { <span class="badge @(sold > 0 ? "badge-tag" : "badge-muted")">@(sold > 0 ? $"{sold} {d.SelectedUnit} terjual" : "Tidak ada data penjualan")</span> }
+                        </div>
+                        @if (w.SoldQtyBase is int s2 && s2 > 0 && maxSold > 0) { <div class="bar mt-1" style="height:7px"><i style="width:@(s2 * 100 / maxSold)%"></i></div> }
+                    </div>
+                    <template class="pop">
+                        <div class="pop">
+                            <h3>@w.Name</h3>
+                            <div class="p-addr">@(w.IsCustomer ? w.Address : "Calon pelanggan (belum pernah memesan)")</div>
+                            <div class="p-grid">
+                                <div><small>Jarak</small><b>@(w.DistanceKm is double dd ? dd.ToString("0.0") + " km" : "—")</b></div>
+                                <div><small>Ongkir ke sini</small><b>@(w.InRange ? (w.DeliveryFee is decimal f2 ? Rupiah.Format(f2) : "—") : "Di luar jangkauan")</b></div>
+                                @if (w.IsCustomer)
+                                {
+                                    <div><small>Pesanan</small><b>@w.OrdersCount kali</b></div>
+                                    <div><small>Total belanja</small><b>@Rupiah.Format(w.TotalSpent)</b></div>
+                                }
+                                @if (w.SoldQtyBase is int sd)
+                                {
+                                    <div><small>@d.SelectedProductName</small><b>@sd @d.SelectedUnit</b></div>
+                                    <div><small>Per hari</small><b>@((w.AvgPerDay ?? 0).ToString("0.0"))</b></div>
+                                }
+                            </div>
+                            @if (w.IsCustomer && !string.IsNullOrWhiteSpace(w.Phone)) { <p class="small mb-1">@UiIcons.Svg("phone", 14) <a href="@WaLink(w.Phone)" target="_blank" rel="noopener">@w.Phone</a></p> }
+                            @if (Model.OfferBatch is not null && w.IsCustomer && (w.SoldQtyBase ?? 0) > 0)
+                            {
+                                <a class="btn btn-sm btn-tag" asp-controller="Rescue" asp-action="Compose" asp-route-batchId="@Model.OfferBatch.BatchId" asp-route-to="@w.BusinessId">@UiIcons.Svg("send", 15) Tawarkan stok @Model.OfferBatch.DaysLeft hari lagi</a>
+                            }
+                        </div>
+                    </template>
+                </article>
+            }
+            @if (d.Warungs.Count == 0)
+            {
+                <div class="empty"><div class="e-ico">@UiIcons.Svg("map", 28)</div><h3>Belum ada warung di peta</h3><p>Warung terverifikasi dengan lokasi terisi akan muncul di sini.</p></div>
+            }
+            <div class="empty hide" id="no-match"><h3>Tidak ada yang cocok</h3><p>Ubah kata kunci atau filter.</p></div>
+        </div>
+    </section>
+
+    <section class="map-canvas" aria-label="Peta">
+        <div class="map-el"></div>
+        <div class="map-hud">
+            <button type="button" class="hud-btn" id="btn-fit">@UiIcons.Svg("map", 17) Tampilkan semua</button>
+            @if (d.ServiceRadiusKm is not null) { <button type="button" class="hud-btn on" id="btn-radius">@UiIcons.Svg("route", 17) Jangkauan antar</button> }
+        </div>
+        <div class="map-legend"><span><i style="background:#5a2c10"></i>Toko Anda</span><span><i style="background:#a8531b"></i>Langganan</span><span><i style="background:#a8927f"></i>Calon pelanggan</span><span><i style="background:#d3362b"></i>Di luar jangkauan</span></div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_MapScripts" />
+    <script src="~/js/map-explorer.js" asp-append-version="true"></script>
+}

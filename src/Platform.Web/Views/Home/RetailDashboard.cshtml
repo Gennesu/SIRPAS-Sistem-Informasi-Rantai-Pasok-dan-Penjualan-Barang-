@@ -1,0 +1,156 @@
+@model Platform.Web.Modules.Reporting.Contracts.DashboardDto
+@using Platform.Web.Modules.Notifications.Contracts
+@using Platform.Web.Modules.Stock.Contracts
+@inject INotificationService Notifications
+@inject IExpiryService Expiry
+@{
+    ViewData["Title"] = "Beranda";
+    var notes = await Notifications.GetAsync();
+    var expiry = await Expiry.GetSummaryAsync();
+    var maxRevenue = Model.Last7Days.Count > 0 ? Model.Last7Days.Max(d => d.Revenue) : 0m;
+    var maxQty = Model.TopProducts.Count > 0 ? Model.TopProducts.Max(t => t.Qty) : 0;
+    var hour = WibTime.ToWib(DateTime.UtcNow).Hour;
+    var salam = hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam";
+    var total = Math.Max(1, expiry.Expired.Batches + expiry.Critical.Batches + expiry.Soon.Batches + expiry.Watch.Batches + expiry.Safe.Batches);
+}
+
+<div class="greet mt-2">
+    <div>
+        <h1>@salam, @User.Identity?.Name</h1>
+        <p>
+            @if (Model.TransactionsToday == 0)
+            {
+                <text>Belum ada penjualan hari ini. Buka kasir untuk mulai mencatat.</text>
+            }
+            else
+            {
+                <text>Hari ini sudah <b>@Model.TransactionsToday transaksi</b> dengan omzet <b>@Rupiah.Format(Model.RevenueToday)</b>.</text>
+            }
+        </p>
+    </div>
+    <div class="g-actions">
+        <a class="btn btn-lg" asp-controller="Pos" asp-action="Index">@UiIcons.Svg("calculator", 20) Buka kasir</a>
+        <a class="btn btn-lg btn-secondary" asp-controller="Marketplace" asp-action="Index">@UiIcons.Svg("store", 20) Belanja ke grosir</a>
+    </div>
+</div>
+
+<div class="section-title"><span>@UiIcons.Svg("bell", 22)</span><h2>Perlu perhatian</h2></div>
+@if (notes.Items.Count == 0)
+{
+    <div class="card tight"><div class="row">@UiIcons.Svg("circle-check", 22)<span>Semua beres. Tidak ada yang mendesak sekarang.</span></div></div>
+}
+else
+{
+    <div class="todo">
+        @foreach (var n in notes.Items.Take(4))
+        {
+            <a class="todo-item @n.Tone.ToString().ToLowerInvariant()" href="@n.Url">
+                <span class="t-ico">@UiIcons.Svg(n.Icon, 22)</span>
+                <span><b>@n.Title</b><span>@n.Detail</span></span>
+                <span class="go">@UiIcons.Svg("chevron-right", 20)</span>
+            </a>
+        }
+    </div>
+}
+
+<div class="section-title"><span>@UiIcons.Svg("chart-column", 22)</span><h2>Ringkasan hari ini</h2></div>
+<div class="grid grid-3 kpis">
+    <div class="kpi"><div class="row-between"><span class="k-label">Omzet hari ini</span><span class="k-ico">@UiIcons.Svg("wallet", 20)</span></div><div class="k-value">@Rupiah.Format(Model.RevenueToday)</div><div class="k-note">Uang masuk dari penjualan kasir.</div></div>
+    <div class="kpi good"><div class="row-between"><span class="k-label">Keuntungan kotor</span><span class="k-ico">@UiIcons.Svg("trending-up", 20)</span></div><div class="k-value">@Rupiah.Format(Model.GrossProfitToday)</div><div class="k-note">Omzet dikurangi modal barang terjual.</div></div>
+    <div class="kpi blue"><div class="row-between"><span class="k-label">Transaksi</span><span class="k-ico">@UiIcons.Svg("receipt", 20)</span></div><div class="k-value">@Model.TransactionsToday</div><div class="k-note">@Model.ItemsSoldToday item terjual.</div></div>
+    <div class="kpi tag"><div class="row-between"><span class="k-label">Nilai persediaan</span><span class="k-ico">@UiIcons.Svg("boxes", 20)</span></div><div class="k-value">@Rupiah.Format(Model.InventoryValue)</div><div class="k-note">@Rupiah.Number(Model.TotalStockBase, 0) item dari @Model.ProductCount produk.</div></div>
+    <div class="kpi @(Model.LowStockCount > 0 ? "warn" : "")"><div class="row-between"><span class="k-label">Stok menipis / habis</span><span class="k-ico">@UiIcons.Svg("triangle-alert", 20)</span></div><div class="k-value">@Model.LowStockCount</div><div class="k-note">@(Model.LowStockCount > 0 ? "Segera pesan ke grosir." : "Semua stok aman.")</div></div>
+    <div class="kpi @(expiry.UnitsAtRisk > 0 ? "danger" : "")"><div class="row-between"><span class="k-label">Hampir kadaluarsa (30 hari)</span><span class="k-ico">@UiIcons.Svg("leaf", 20)</span></div><div class="k-value">@Rupiah.Number(expiry.UnitsAtRisk, 0)</div><div class="k-note">@(expiry.UnitsAtRisk > 0 ? "item perlu dijual duluan, modal " + Rupiah.Format(expiry.ValueAtRisk) : "Tidak ada barang berisiko.")</div></div>
+</div>
+
+<div class="split mt-2">
+    <div class="card">
+        <div class="card-head"><h2>@UiIcons.Svg("chart-column", 21) Omzet &amp; keuntungan, 7 hari</h2></div>
+        <div class="chart">
+            @foreach (var d in Model.Last7Days)
+            {
+                var hr = maxRevenue > 0 ? (int)Math.Round(d.Revenue / maxRevenue * 100m) : 0;
+                var hp = maxRevenue > 0 ? (int)Math.Round(Math.Max(d.Profit, 0m) / maxRevenue * 100m) : 0;
+                var tip = WibTime.Format(d.Date) + ": omzet " + Rupiah.Format(d.Revenue) + ", untung " + Rupiah.Format(d.Profit) + ", " + d.Transactions + " transaksi";
+                var isToday = d.Date == Model.Last7Days.Last().Date;
+                <div class="chart-col" title="@tip">
+                    <div class="chart-bars">
+                        <div class="chart-bar" style="height:@(Math.Max(hr, 2))%"></div>
+                        <div class="chart-bar b2" style="height:@(Math.Max(hp, 2))%"></div>
+                    </div>
+                    <div class="chart-lab @(isToday ? "today" : "")">@d.Date.ToString("dd/MM")</div>
+                </div>
+            }
+        </div>
+        <div class="legend"><span><i style="background:var(--brand-100)"></i>Omzet</span><span><i style="background:var(--brand)"></i>Keuntungan kotor</span></div>
+    </div>
+
+    <div class="stack" style="--gap:18px">
+        <div class="card">
+            <div class="card-head"><h2>@UiIcons.Svg("flame", 21) Produk terlaris</h2><span class="muted small">7 hari</span></div>
+            @if (Model.TopProducts.Count == 0)
+            {
+                <p class="muted mb-0">Belum ada penjualan minggu ini.</p>
+            }
+            <div class="rank">
+                @foreach (var t in Model.TopProducts)
+                {
+                    <div class="rank-row">
+                        <div class="r-top"><span>@t.Name</span><span>@t.Qty item</span></div>
+                        <div class="bar"><i style="width:@(maxQty > 0 ? (int)Math.Round(t.Qty * 100.0 / maxQty) : 0)%"></i></div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h2>@UiIcons.Svg("leaf", 21) Masa kadaluarsa stok</h2><a class="small" asp-controller="Rescue" asp-action="Index"><b>Lihat</b></a></div>
+            @if (expiry.Safe.Batches + expiry.Expired.Batches + expiry.Critical.Batches + expiry.Soon.Batches + expiry.Watch.Batches == 0)
+            {
+                <p class="muted mb-0">Belum ada tanggal kadaluarsa tercatat. Isi saat mencatat pembelian atau lewat menu Stok.</p>
+            }
+            else
+            {
+                <div class="stack-bar" role="img" aria-label="Sebaran stok menurut masa kadaluarsa">
+                    <i class="s-expired" style="width:@(expiry.Expired.Batches * 100 / total)%"></i>
+                    <i class="s-critical" style="width:@(expiry.Critical.Batches * 100 / total)%"></i>
+                    <i class="s-soon" style="width:@(expiry.Soon.Batches * 100 / total)%"></i>
+                    <i class="s-watch" style="width:@(expiry.Watch.Batches * 100 / total)%"></i>
+                    <i class="s-safe" style="width:@(expiry.Safe.Batches * 100 / total)%"></i>
+                </div>
+                <div class="legend">
+                    <span><i style="background:var(--red-700)"></i>Lewat @expiry.Expired.Batches</span>
+                    <span><i style="background:var(--red)"></i>&le;7 hari @expiry.Critical.Batches</span>
+                    <span><i style="background:var(--orange)"></i>&le;14 hari @expiry.Soon.Batches</span>
+                    <span><i style="background:var(--tag)"></i>&le;30 hari @expiry.Watch.Batches</span>
+                    <span><i style="background:var(--brand)"></i>Aman @expiry.Safe.Batches</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (Model.LowStock.Count > 0)
+{
+    <div class="card mt-2">
+        <div class="card-head">
+            <h2>@UiIcons.Svg("triangle-alert", 21) Stok menipis / habis</h2>
+            <a class="btn btn-sm" asp-controller="Marketplace" asp-action="Index">@UiIcons.Svg("store", 17) Pesan ke grosir</a>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-stack">
+                <thead><tr><th>Produk</th><th class="right">Sisa</th><th class="right">Batas minimum</th></tr></thead>
+                <tbody>
+                @foreach (var l in Model.LowStock)
+                {
+                    <tr>
+                        <td class="cell-title"><span class="name">@l.Name</span></td>
+                        <td class="right" data-label="Sisa"><span class="badge @(l.QtyBase == 0 ? "badge-danger" : "badge-warn")">@l.QtyBase @l.BaseUnit</span></td>
+                        <td class="right muted" data-label="Batas minimum">@l.MinStockBase @l.BaseUnit</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

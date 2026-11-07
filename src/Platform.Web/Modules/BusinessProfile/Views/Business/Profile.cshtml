@@ -1,0 +1,95 @@
+@model Platform.Web.Modules.BusinessProfile.ViewModels.BusinessProfileViewModel
+@{
+    ViewData["Title"] = "Profil & pengaturan";
+    var isRetail = User.IsInRole(RoleNames.Retail);
+}
+@section Styles { <partial name="_MapStyles" /> }
+
+<div class="page-head">
+    <div>
+        <h1>Profil &amp; pengaturan</h1>
+        <p class="lead">Data usaha, lokasi di peta, dan pengaturan privasi.</p>
+    </div>
+    @if (User.IsInRole(RoleNames.Grossier))
+    {
+        <div class="page-actions"><a class="btn btn-secondary" asp-controller="Delivery" asp-action="Index">@UiIcons.Svg("truck", 18) Atur pengiriman &amp; ongkir</a></div>
+    }
+</div>
+
+<div class="grid grid-4 kpis">
+    <div class="kpi"><span class="k-label">Jenis bisnis</span><div class="k-value" style="font-size:1.2rem">@Model.BusinessTypeName</div></div>
+    <div class="kpi"><span class="k-label">Peran</span><div class="k-value" style="font-size:1.2rem">@Model.MarketRoleLabel</div></div>
+    <div class="kpi @(Model.VerificationLabel.Contains("erifikasi", StringComparison.OrdinalIgnoreCase) && !Model.VerificationLabel.StartsWith("Terverifikasi") ? "warn" : "good")"><span class="k-label">Verifikasi</span><div class="k-value" style="font-size:1.2rem">@Model.VerificationLabel</div></div>
+    <div class="kpi"><span class="k-label">Terdaftar</span><div class="k-value" style="font-size:1.2rem">@Model.CreatedAt.ToString("dd-MM-yyyy")</div><div class="k-note">Status: @(Model.IsActive ? "Aktif" : "Nonaktif")</div></div>
+</div>
+
+@if (Model.CanEdit)
+{
+    <form asp-controller="Business" asp-action="Profile" asp-route-id="@Model.Id" method="post" data-once class="mt-2">
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <div class="split">
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("building-2", 21) Data usaha</h2></div>
+                <div class="form-grid">
+                    <div class="field"><label asp-for="Form.Name"></label><input asp-for="Form.Name" /><span asp-validation-for="Form.Name" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="Form.Phone"></label><input asp-for="Form.Phone" type="tel" /><span asp-validation-for="Form.Phone" class="field-validation-error"></span></div>
+                    <div class="field full"><label asp-for="Form.Address"></label><input asp-for="Form.Address" /><span asp-validation-for="Form.Address" class="field-validation-error"></span></div>
+                </div>
+
+                <div class="field">
+                    <span class="label">Lokasi di peta</span>
+                    <partial name="_LocationPicker" model='new LocationPickerModel("Form_Latitude", "Form_Longitude")' />
+                    <span class="hint">Geser peta sampai pin tepat di usaha Anda. Jarak ke grosir/warung dan ongkir dihitung dari titik ini.</span>
+                </div>
+                <div class="form-grid">
+                    <div class="field"><label asp-for="Form.Latitude"></label><input asp-for="Form.Latitude" inputmode="decimal" /><span asp-validation-for="Form.Latitude" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="Form.Longitude"></label><input asp-for="Form.Longitude" inputmode="decimal" /><span asp-validation-for="Form.Longitude" class="field-validation-error"></span></div>
+                </div>
+            </div>
+
+            <div class="stack" style="--gap:18px">
+                @if (isRetail)
+                {
+                    <div class="card">
+                        <div class="card-head"><h2>@UiIcons.Svg("shield-check", 21) Privasi data penjualan</h2></div>
+                        <label class="check">
+                            <input asp-for="Form.ShareSalesData" />
+                            <span>Bagikan ringkasan penjualan ke grosir langganan
+                                <small>Grosir hanya melihat jumlah terjual barang yang dibeli dari mereka (mis. susu: 80 dalam 30 hari). Struk, harga jual, dan keuntungan tidak dibagikan. Dengan ini grosir bisa menawarkan barang yang pasti laku di warung Anda.</small>
+                            </span>
+                        </label>
+                    </div>
+                }
+                <div class="card">
+                    <div class="card-head"><h2>@UiIcons.Svg("info", 21) Tentang akun</h2></div>
+                    <dl class="kv">
+                        <dt>Jenis bisnis</dt><dd>@Model.BusinessTypeName</dd>
+                        <dt>Peran</dt><dd>@Model.MarketRoleLabel</dd>
+                        <dt>Verifikasi</dt><dd>@Model.VerificationLabel</dd>
+                    </dl>
+                </div>
+                <button type="submit" class="btn btn-lg btn-block">@UiIcons.Svg("check", 20) Simpan perubahan</button>
+            </div>
+        </div>
+    </form>
+}
+else
+{
+    <div class="card mt-2">
+        <div class="card-head"><h2>Data usaha</h2></div>
+        <dl class="kv">
+            <dt>Nama usaha</dt><dd>@Model.Form.Name</dd>
+            <dt>Alamat</dt><dd>@Model.Form.Address</dd>
+            <dt>Kontak</dt><dd>@Model.Form.Phone</dd>
+            <dt>Koordinat</dt><dd>@(Model.Form.Latitude.HasValue ? $"{Model.Form.Latitude}, {Model.Form.Longitude}" : "—")</dd>
+        </dl>
+    </div>
+}
+
+@if (Model.CanEdit)
+{
+    @section Scripts {
+        <partial name="_MapScripts" />
+        <script src="~/js/location-picker.js" asp-append-version="true"></script>
+    }
+}

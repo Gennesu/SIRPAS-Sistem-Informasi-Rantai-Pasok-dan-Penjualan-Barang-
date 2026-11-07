@@ -1,0 +1,57 @@
+@model Platform.Web.SharedKernel.PeriodSelection
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+    var custom = Model.Preset == PeriodPreset.Custom;
+}
+@functions {
+    private static string PeriodLabel(PeriodPreset preset) => preset switch
+    {
+        PeriodPreset.Today => "Hari ini",
+        PeriodPreset.Yesterday => "Kemarin",
+        PeriodPreset.ThisWeek => "Minggu ini",
+        PeriodPreset.ThisMonth => "Bulan ini",
+        _ => "Rentang tanggal"
+    };
+}
+
+<div class="chips mb-1" role="group" aria-label="Periode">
+    @foreach (var p in Enum.GetValues<PeriodPreset>().Where(x => x != PeriodPreset.Custom))
+    {
+        <a class="chip @(p == Model.Preset ? "active" : "")"
+           asp-controller="@controller"
+           asp-action="Index"
+           asp-route-preset="@p">@PeriodLabel(p)</a>
+    }
+
+    <button type="button"
+            class="chip @(custom ? "active" : "")"
+            onclick="document.getElementById('range-form').classList.toggle('hide')">
+        @UiIcons.Svg("calendar", 15) Rentang tanggal
+    </button>
+</div>
+
+<form method="get"
+      asp-controller="@controller"
+      asp-action="Index"
+      id="range-form"
+      class="row @(custom ? "" : "hide")"
+      style="gap:10px;margin-bottom:6px">
+
+    <input type="hidden" name="preset" value="Custom" />
+
+    <input type="date"
+           name="from"
+           value="@Model.From?.ToString("yyyy-MM-dd")"
+           aria-label="Dari tanggal"
+           style="width:auto" />
+
+    <span class="muted">s.d.</span>
+
+    <input type="date"
+           name="to"
+           value="@Model.To?.ToString("yyyy-MM-dd")"
+           aria-label="Sampai tanggal"
+           style="width:auto" />
+
+    <button type="submit" class="btn btn-sm">Terapkan</button>
+</form>

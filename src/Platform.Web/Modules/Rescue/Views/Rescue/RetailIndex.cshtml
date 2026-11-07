@@ -1,0 +1,108 @@
+@model Platform.Web.Modules.Rescue.ViewModels.RetailRescueViewModel
+@using Platform.Web.Modules.Rescue.ViewModels
+@using Platform.Web.Modules.Stock.Contracts
+@{
+    ViewData["Title"] = "Kadaluarsa & anti-mubazir";
+    var s = Model.Summary;
+    var total = Math.Max(1, s.Expired.Batches + s.Critical.Batches + s.Soon.Batches + s.Watch.Batches + s.Safe.Batches);
+    var tracked = s.Expired.Batches + s.Critical.Batches + s.Soon.Batches + s.Watch.Batches + s.Safe.Batches;
+    var risky = Model.Batches.Where(b => b.Band != ExpiryBand.Safe).ToList();
+}
+
+<div class="rescue-hero mt-2">
+    <div>
+        <span class="badge badge-tag">@UiIcons.Svg("leaf", 14) Anti-mubazir</span>
+        <h1 class="mt-1">Kadaluarsa &amp; promo</h1>
+        <p>Barang di rak yang mendekati kadaluarsa. Kasir otomatis menjual yang paling dekat kadaluarsa lebih dulu (FEFO). Beri promo ke pembeli agar barangnya laku sebelum terbuang.</p>
+        <div class="row mt-2">
+            <a class="btn btn-tag" asp-controller="ConsumerPromos" asp-action="Index">@UiIcons.Svg("badge-percent", 18) Promo untuk pembeli</a>
+            <a class="btn btn-secondary" asp-controller="Deals" asp-action="Index">@UiIcons.Svg("tag", 18) Promo dari grosir</a>
+            <a class="btn btn-secondary" asp-controller="Stock" asp-action="Index">@UiIcons.Svg("boxes", 18) Kelola stok</a>
+        </div>
+    </div>
+    <div class="r-stats">
+        <div class="r-stat"><b>@Rupiah.Number(s.UnitsAtRisk, 0)</b><span>item &le; 30 hari</span></div>
+        <div class="r-stat"><b>@Rupiah.Format(s.ValueAtRisk)</b><span>modal berisiko</span></div>
+        <div class="r-stat"><b>@Model.OpenOffers.Count</b><span>penawaran baru</span></div>
+    </div>
+</div>
+
+@if (Model.OpenOffers.Count > 0)
+{
+    <div class="section-title"><span>@UiIcons.Svg("send", 22)</span><h2>Penawaran khusus untuk Anda</h2><a class="small" asp-controller="Deals" asp-action="Offers"><b>Semua penawaran</b></a></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr))">
+        @foreach (var o in Model.OpenOffers.Where(o => o.Bundle is not null).Take(2))
+        {
+            <partial name="_BundleTicket" model="new BundleTicketModel(o.Bundle!, false, o.Id)" />
+        }
+    </div>
+}
+
+<div class="card mt-2">
+    <div class="card-head"><h2>@UiIcons.Svg("clock", 21) Masa kadaluarsa stok Anda</h2></div>
+    @if (tracked == 0)
+    {
+        <div class="empty"><div class="e-ico">@UiIcons.Svg("calendar", 30)</div><h3>Belum ada tanggal kadaluarsa tercatat</h3><p>Barang dari grosir otomatis membawa tanggal kadaluarsanya. Untuk stok lain, tandai tanggalnya di menu Stok.</p><a class="btn" asp-controller="Stock" asp-action="Index">Buka stok</a></div>
+    }
+    else
+    {
+        <div class="stack-bar">
+            <i class="s-expired" style="width:@(s.Expired.Batches * 100 / total)%"></i><i class="s-critical" style="width:@(s.Critical.Batches * 100 / total)%"></i><i class="s-soon" style="width:@(s.Soon.Batches * 100 / total)%"></i><i class="s-watch" style="width:@(s.Watch.Batches * 100 / total)%"></i><i class="s-safe" style="width:@(s.Safe.Batches * 100 / total)%"></i>
+        </div>
+        <div class="band-legend">
+            <div class="bl band-expired"><div><b>@s.Expired.Batches</b><span>Lewat tanggal</span></div></div>
+            <div class="bl band-critical"><div><b>@s.Critical.Batches</b><span>0 – 7 hari</span></div></div>
+            <div class="bl band-soon"><div><b>@s.Soon.Batches</b><span>8 – 14 hari</span></div></div>
+            <div class="bl band-watch"><div><b>@s.Watch.Batches</b><span>15 – 30 hari</span></div></div>
+            <div class="bl band-safe"><div><b>@s.Safe.Batches</b><span>Aman</span></div></div>
+        </div>
+    }
+</div>
+
+@if (risky.Count > 0)
+{
+    <div class="section-title"><span>@UiIcons.Svg("flame", 22)</span><h2>Jual duluan</h2></div>
+    <div class="card">
+        <div class="table-wrap">
+            <table class="table table-stack">
+                <thead><tr><th>Produk</th><th>Sisa umur</th><th class="right">Sisa stok</th><th class="right">Nilai (modal)</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var b in risky)
+                {
+                    <tr>
+                        <td class="cell-title"><span class="name">@b.ProductName</span><span class="sub">Kadaluarsa @IdFormat.Date(b.ExpiryDate)@(b.SourceRef is null ? "" : " · " + b.SourceRef)</span></td>
+                        <td data-label="Sisa umur"><span class="pill-band band-@b.Band.ToString().ToLowerInvariant()">@ExpiryBands.DaysText(b.DaysLeft)</span></td>
+                        <td class="right" data-label="Sisa stok">@b.QtyBase @b.BaseUnitName</td>
+                        <td class="right" data-label="Nilai (modal)">@Rupiah.Format(b.ValueAtCost)</td>
+                        <td class="right cell-actions">
+                            @if (b.Band == ExpiryBand.Expired)
+                            {
+                                <form asp-action="WriteOff" asp-route-batchId="@b.BatchId" method="post" class="inline">
+                                    <button class="btn btn-sm btn-danger" type="submit" data-confirm="Keluarkan @b.QtyBase @b.BaseUnitName @b.ProductName dari stok?" data-confirm-title="Buang barang kadaluarsa" data-confirm-ok="Ya, keluarkan" data-confirm-danger>@UiIcons.Svg("trash-2", 16) Buang</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <a class="btn btn-sm" asp-controller="ConsumerPromos" asp-action="Index">@UiIcons.Svg("badge-percent", 16) Promo pembeli</a>
+                                <a class="btn btn-sm btn-secondary" asp-controller="Pos" asp-action="Index">@UiIcons.Svg("calculator", 16) Kasir</a>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <p class="hint mt-1 mb-0">Tips: pasang promo untuk pembeli (diskon bagi stok yang kedaluwarsa dalam beberapa hari). Promo tampil di menu Promo pembeli dan terjual lebih dulu (FEFO), daripada terbuang.</p>
+    </div>
+}
+
+@if (Model.Deals.Count > 0)
+{
+    <div class="section-title"><span>@UiIcons.Svg("badge-percent", 22)</span><h2>Promo anti-mubazir dari grosir</h2><a class="small" asp-controller="Deals" asp-action="Index"><b>Lihat semua</b></a></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr))">
+        @foreach (var d in Model.Deals)
+        {
+            <partial name="_BundleTicket" model="new BundleTicketModel(d, false)" />
+        }
+    </div>
+}

@@ -1,0 +1,59 @@
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Orders.Domain
+@using Platform.Web.Modules.Consumers.Domain
+@model IReadOnlyList<Platform.Web.Modules.Consumers.Contracts.ConsumerOrderSummaryDto>
+@{
+    var isSeller = (bool)(ViewData["IsSeller"] ?? false);
+    ViewData["Title"] = isSeller ? "Pesanan pembeli" : "Pesanan saya";
+    ViewData["Nav"] = "ConsumerOrders/Index";
+    var current = ViewData["Status"] as OrderStatus?;
+}
+<div class="page-head"><div><h1>@(isSeller ? "Pesanan pembeli" : "Pesanan saya")</h1>
+    <p class="lead">@(isSeller ? "Pesanan dari pembeli akhir. Stok dicadangkan sejak pesanan dibuat dan keluar saat Anda menerima pesanan." : "Status pesanan dan pembayaran ditampilkan terpisah.")</p></div>
+    @if (!isSeller) { <div class="page-actions"><a class="btn" asp-controller="Shop" asp-action="Index">@UiIcons.Svg("store", 18) Belanja</a></div> }
+</div>
+<div class="chips mb-2">
+    <a class="chip @(current is null ? "active" : "")" asp-action="Index">Semua</a>
+    @foreach (var s in new[] { OrderStatus.Pending, OrderStatus.Accepted, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Delivered, OrderStatus.PickedUp, OrderStatus.Completed, OrderStatus.Cancelled, OrderStatus.Rejected })
+    {
+        <a class="chip @(current == s ? "active" : "")" asp-action="Index" asp-route-status="@s">@OrderLabels.Status(s)</a>
+    }
+</div>
+@if (Model.Count == 0)
+{
+    <div class="card empty"><h3>Belum ada pesanan</h3><p class="muted">@(isSeller ? "Pesanan dari pembeli akan muncul di sini." : "Pesanan Anda akan muncul setelah Anda berbelanja.")</p></div>
+}
+else
+{
+    <div class="card pad-0"><div class="table-wrap"><table class="table table-stack hover">
+        <thead><tr><th>No.</th><th>@(isSeller ? "Pembeli" : "Warung")</th><th>Barang</th><th class="right">Total</th><th>Status pesanan</th><th>Pembayaran</th></tr></thead>
+        <tbody>
+        @foreach (var o in Model)
+        {
+            <tr class="order-row-link" data-row-link="@Url.Action("Details", new { id = o.Id })" tabindex="0" aria-label="Buka rincian pesanan @o.Number">
+                <td data-label="No."><a asp-action="Details" asp-route-id="@o.Id"><b>@o.Number</b></a><div class="muted small">@IdFormat.StampWithYear(o.CreatedAt)</div></td>
+                <td data-label="@(isSeller ? "Pembeli" : "Warung")">@o.PartyName</td>
+                <td data-label="Barang" class="small">@o.ItemsText</td>
+                <td data-label="Total" class="right num">@Rupiah.Format(o.TotalAmount)</td>
+                <td data-label="Status pesanan"><span class="@OrderLabels.BadgeClass(o.Status)">@OrderLabels.Status(o.Status)</span></td>
+                <td data-label="Pembayaran">@PayBadge(o.PaymentStatus)</td>
+            </tr>
+        }
+        </tbody>
+    </table></div></div>
+}
+@functions {
+    static Microsoft.AspNetCore.Html.IHtmlContent PayBadge(OrderPaymentStatus s)
+    {
+        var (cls, text) = s switch
+        {
+            OrderPaymentStatus.Paid => ("badge badge-ok", "Lunas"),
+            OrderPaymentStatus.Pending => ("badge badge-warn", "Menunggu bayar (simulasi)"),
+            OrderPaymentStatus.Failed => ("badge badge-danger", "Gagal"),
+            OrderPaymentStatus.Cancelled => ("badge", "Dibatalkan"),
+            OrderPaymentStatus.Refunded => ("badge badge-info", "Dikembalikan (simulasi)"),
+            _ => ("badge badge-warn", "Belum dibayar (tunai)")
+        };
+        return new Microsoft.AspNetCore.Html.HtmlString($"<span class=\"{cls}\">{text}</span>");
+    }
+}

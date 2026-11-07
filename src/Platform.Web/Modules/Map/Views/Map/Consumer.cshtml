@@ -1,0 +1,104 @@
+@using System.Globalization
+@model Platform.Web.Modules.Map.ViewModels.ConsumerMapViewModel
+@{
+    ViewData["Title"] = "Peta warung terdekat";
+    var inv = CultureInfo.InvariantCulture;
+    var located = Model.Shops.Where(s => s.Latitude.HasValue && s.Longitude.HasValue).ToList();
+    var withoutLocation = Model.Shops.Where(s => !s.Latitude.HasValue || !s.Longitude.HasValue).ToList();
+    var nearest = located.OrderBy(s => s.DistanceKm ?? double.MaxValue).FirstOrDefault();
+}
+@section Styles { <partial name="_MapStyles" /> }
+
+<div class="page-head">
+    <div>
+        <h1>Peta warung terdekat</h1>
+        <p class="lead">Temukan warung terverifikasi yang memiliki produk tersedia. Jarak diurutkan dari lokasi di Profil pembeli.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-secondary" asp-controller="Shop" asp-action="Index">@UiIcons.Svg("store", 18) Lihat daftar warung</a></div>
+</div>
+
+@if (Model.OriginLat is null || Model.OriginLon is null)
+{
+    <div class="alert alert-warn">@UiIcons.Svg("map-pin", 20)<div class="grow"><b>Lokasi pembeli belum diatur.</b> Warung tetap tampil, tetapi jarak belum dapat dihitung. <a asp-controller="Consumer" asp-action="Profile"><b>Atur lokasi di Profil</b></a></div></div>
+}
+
+<div class="grid grid-3 kpis mb-2">
+    <div class="kpi"><div class="row-between"><span class="k-label">Warung dengan produk tersedia</span><span class="k-ico">@UiIcons.Svg("store", 20)</span></div><div class="k-value">@Model.Shops.Count</div></div>
+    <div class="kpi blue"><div class="row-between"><span class="k-label">Warung terdekat</span><span class="k-ico">@UiIcons.Svg("map-pin", 20)</span></div><div class="k-value">@(nearest?.DistanceKm is double km ? $"{km:0.0} km" : "—")</div><div class="k-note">Jarak garis lurus dari lokasi pembeli.</div></div>
+    <div class="kpi tag"><div class="row-between"><span class="k-label">Belum ada titik lokasi</span><span class="k-ico">@UiIcons.Svg("map-pin", 20)</span></div><div class="k-value">@withoutLocation.Count</div></div>
+</div>
+
+<div class="map-shell" data-map-explorer data-mode="retail" data-route="1"
+     data-origin-lat="@Model.OriginLat?.ToString(inv)" data-origin-lon="@Model.OriginLon?.ToString(inv)" data-origin-name="@Model.OriginName" data-origin-label="Lokasi pembeli">
+    <section class="map-panel" aria-label="Daftar warung terdekat">
+        <div class="map-panel-head">
+            <div class="search-box">@UiIcons.Svg("search", 18)<input type="search" id="q" placeholder="Cari nama warung" autocomplete="off" aria-label="Cari nama warung" /></div>
+            <div class="chips scroll" id="filters">
+                <button type="button" class="chip active" data-filter="all">Semua <span class="count">@located.Count</span></button>
+                <button type="button" class="chip" data-filter="near">&le; 5 km</button>
+                <button type="button" class="chip" data-filter="deals">Ada promo</button>
+                <button type="button" class="chip" data-filter="delivery">Bisa diantar</button>
+            </div>
+        </div>
+        <div class="map-list" id="list">
+            @foreach (var shop in located.OrderBy(s => s.DistanceKm ?? double.MaxValue).ThenBy(s => s.Name))
+            {
+                var kind = shop.PromoCount > 0 ? "promo" : "shop";
+                <article class="map-card" tabindex="0" data-card data-id="@shop.BusinessId" data-kind="@kind"
+                         data-lat="@shop.Latitude!.Value.ToString(inv)" data-lon="@shop.Longitude!.Value.ToString(inv)" data-name="@shop.Name"
+                         data-distance="@shop.DistanceKm?.ToString(inv)" data-delivery="@(shop.OffersDelivery && shop.DeliveryAvailable ? "1" : "0")"
+                         data-deals="@shop.PromoCount" data-search="@shop.Name.ToLowerInvariant()" data-label="@(shop.PromoCount > 0 ? "%" : "")">
+                    <span class="m-ico">@UiIcons.Svg(kind == "promo" ? "badge-percent" : "store", 22)</span>
+                    <div>
+                        <h3>@shop.Name</h3>
+                        <div class="muted small">@shop.Address</div>
+                        <div class="m-meta">
+                            @if (shop.DistanceKm is double distance) { <span>@UiIcons.Svg("map-pin", 13) @distance.ToString("0.0", inv) km</span> }
+                            @if (shop.OffersDelivery && shop.DeliveryAvailable) { <span>@UiIcons.Svg("truck", 13) Antar @Rupiah.Format(shop.DeliveryFee)</span> }
+                            else if (shop.OffersPickup) { <span>@UiIcons.Svg("hand-coins", 13) Ambil sendiri</span> }
+                        </div>
+                        <div class="m-badges">
+                            <span class="badge">@shop.ProductCount produk tersedia</span>
+                            @if (shop.PromoCount > 0) { <span class="badge badge-tag">@UiIcons.Svg("leaf", 12) @shop.PromoCount promo</span> }
+                        </div>
+                    </div>
+                    <template class="pop">
+                        <div class="pop">
+                            <h3>@shop.Name</h3>
+                            <div class="p-addr">@shop.Address</div>
+                            <div class="p-grid">
+                                <div><small>Jarak garis lurus</small><b>@(shop.DistanceKm is double kmAway ? kmAway.ToString("0.0", inv) + " km" : "Belum diketahui")</b></div>
+                                <div><small>Produk tersedia</small><b>@shop.ProductCount produk</b></div>
+                                <div><small>Pengiriman</small><b>@(shop.OffersDelivery ? shop.DeliveryAvailable ? Rupiah.Format(shop.DeliveryFee) : (shop.DeliveryNote ?? "Di luar jangkauan") : "Tidak tersedia")</b></div>
+                                @if (shop.PromoCount > 0) { <div><small>Promo</small><b>@shop.PromoCount promo</b></div> }
+                            </div>
+                            <a class="btn btn-sm" asp-controller="Shop" asp-action="Detail" asp-route-id="@shop.BusinessId">Lihat warung &amp; belanja</a>
+                        </div>
+                    </template>
+                </article>
+            }
+            @if (located.Count == 0)
+            {
+                <div class="empty"><div class="e-ico">@UiIcons.Svg("map", 28)</div><h3>Belum ada warung di peta</h3><p>Warung terverifikasi dengan produk tersedia dan titik lokasi akan tampil di sini.</p></div>
+            }
+            <div class="empty hide" id="no-match"><h3>Tidak ada warung yang cocok</h3><p>Ubah kata kunci atau filter.</p></div>
+            @foreach (var shop in withoutLocation)
+            {
+                <article class="map-card prospect" style="cursor:default"><span class="m-ico">@UiIcons.Svg("store", 22)</span><div><h3>@shop.Name</h3><div class="muted small">Lokasi belum diisi; jarak belum dapat dihitung.</div><a class="small" asp-controller="Shop" asp-action="Detail" asp-route-id="@shop.BusinessId"><b>Lihat warung</b></a></div></article>
+            }
+        </div>
+    </section>
+    <section class="map-canvas" aria-label="Peta warung terdekat">
+        <div class="map-el"></div>
+        <div class="map-hud">
+            <button type="button" class="hud-btn" id="btn-me">@UiIcons.Svg("locate-fixed", 17) Lokasi saya</button>
+            <button type="button" class="hud-btn" id="btn-fit">@UiIcons.Svg("map", 17) Tampilkan semua</button>
+        </div>
+        <div class="map-legend"><span><i style="background:#a8531b"></i>Warung</span><span><i style="background:#ffc933"></i>Ada promo</span><span><i style="background:#2563c9"></i>Lokasi pembeli</span></div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_MapScripts" />
+    <script src="~/js/map-explorer.js" asp-append-version="true"></script>
+}

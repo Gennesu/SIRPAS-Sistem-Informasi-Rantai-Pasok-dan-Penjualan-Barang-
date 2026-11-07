@@ -1,0 +1,48 @@
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Orders.Domain
+@model IReadOnlyList<OrderSummaryDto>
+@{
+    var current = ViewData["Status"] as OrderStatus?;
+    ViewData["Title"] = "Pembelian dari peternak";
+    var filters = new OrderStatus?[] { null, OrderStatus.PickedUp, OrderStatus.Completed };
+}
+
+<div class="page-head">
+    <div>
+        <h1>Pembelian dari peternak</h1>
+        <p class="lead">Lihat pasokan yang diserahkan peternakan. Buka transaksi untuk memeriksa rincian dan konfirmasi penerimaan agar stok agen bertambah.</p>
+    </div>
+</div>
+
+<div class="chips scroll mb-2" role="tablist" aria-label="Filter status penerimaan">
+    @foreach (var status in filters)
+    {
+        <a class="chip @(current == status ? "active" : "")" asp-action="FromLivestock" asp-route-status="@status">@(status is null ? "Semua" : status == OrderStatus.PickedUp ? "Menunggu konfirmasi" : OrderLabels.Status(status.Value))</a>
+    }
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("package-open", 30)</div><h3>Belum ada pembelian dari peternak</h3><p>Penyerahan pasokan dari peternakan akan muncul di sini.</p></div></div>
+}
+else
+{
+    <div class="card pad-0">
+        <div class="table-wrap"><table class="table table-stack hover">
+            <thead><tr><th>Transaksi</th><th>Peternakan</th><th>Barang</th><th class="right">Total</th><th>Status</th></tr></thead>
+            <tbody>
+            @foreach (var order in Model)
+            {
+                var statusText = order.Status == OrderStatus.PickedUp ? "Menunggu konfirmasi" : OrderLabels.Status(order.Status);
+                <tr class="order-row-link" data-row-link="@Url.Action("Detail", "Orders", new { id = order.Id })" tabindex="0" aria-label="Buka rincian pesanan @order.Number">
+                    <td class="cell-title"><span class="name">@order.Number</span><span class="sub">@IdFormat.Stamp(order.CreatedAt)</span></td>
+                    <td data-label="Peternakan">@order.SellerName</td>
+                    <td data-label="Barang" class="small">@order.ItemsText</td>
+                    <td class="right num" data-label="Total"><b>@Rupiah.Format(order.TotalAmount)</b></td>
+                    <td data-label="Status"><span class="@OrderLabels.BadgeClass(order.Status)">@statusText</span></td>
+                </tr>
+            }
+            </tbody>
+        </table></div>
+    </div>
+}

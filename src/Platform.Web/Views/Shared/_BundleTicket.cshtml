@@ -1,0 +1,66 @@
+@model Platform.Web.Modules.Rescue.ViewModels.BundleTicketModel
+@using Platform.Web.Modules.Rescue.Contracts
+@using Platform.Web.Modules.Stock.Contracts
+@{
+    var b = Model.Bundle;
+    var band = ExpiryBands.Of(b.EarliestExpiryDays).ToString().ToLowerInvariant();
+}
+<article class="ticket">
+    <span class="off">-@b.DiscountPercent%</span>
+    <div class="ticket-main">
+        <div class="row" style="gap:12px;align-items:flex-start;flex-wrap:nowrap">
+            <span class="daytag sm band-@band" title="Barang paling dekat kadaluarsa: @IdFormat.Date(b.EarliestExpiry)"><b>@Math.Max(b.EarliestExpiryDays, 0)</b><span>hari</span></span>
+            <div class="grow" style="padding-right:46px">
+                <h3 style="line-height:1.25">@b.Title</h3>
+                @if (Model.ForSeller)
+                {
+                    <div class="row mt-1" style="gap:6px">
+                        <span class="badge @(b.State == BundleState.Active ? "badge-ok" : b.State == BundleState.SoldOut ? "badge-warn" : "badge-muted")">@RescueLabels.Bundle(b.State)</span>
+                        @if (b.IsPrivate) { <span class="badge badge-info">@UiIcons.Svg("eye-off", 13) Privat</span> } else { <span class="badge badge-tag">@UiIcons.Svg("store", 13) Di marketplace</span> }
+                    </div>
+                }
+                else if (b.Seller is not null)
+                {
+                    <div class="muted small mt-1">@UiIcons.Svg("store", 14) @b.Seller.Name@(b.Seller.DistanceKm is double d ? $" · {d:0.0} km" : "")</div>
+                }
+            </div>
+        </div>
+        <ul class="items-mini">
+            @foreach (var i in b.Items)
+            {
+                <li>
+                    <span class="q">@i.QtyBase</span>
+                    <span>@i.ProductName <span class="muted small">(@i.BaseUnitName, kadaluarsa @IdFormat.DateShort(i.ExpiryDate))</span></span>
+                </li>
+            }
+        </ul>
+        @if (Model.ForSeller)
+        {
+            <p class="muted small mt-1 mb-0">Tersedia <b>@b.Available paket</b>@(b.Sold > 0 ? $" · terjual {b.Sold}" : "") · berlaku sampai @IdFormat.Date(b.ValidUntil)</p>
+        }
+        else
+        {
+            <p class="muted small mt-1 mb-0">Berlaku sampai @IdFormat.DateShort(b.ValidUntil) · tersisa <b>@b.Available paket</b></p>
+        }
+    </div>
+    <div class="ticket-stub">
+        <span class="price-old">@Rupiah.Format(b.NormalPrice)</span>
+        <span class="price-new">@Rupiah.Format(b.Price)</span>
+        <span class="save-tag">Hemat @Rupiah.Format(b.Savings)</span>
+        <div class="mt-1">
+            @if (Model.ForSeller)
+            {
+                @if (b.State is BundleState.Active or BundleState.SoldOut)
+                {
+                    <form asp-controller="Rescue" asp-action="EndBundle" asp-route-id="@b.Id" method="post" class="inline">
+                        <button type="submit" class="btn btn-sm btn-danger-ghost" data-confirm="Hentikan paket ini? Penawaran yang masih terbuka ikut ditarik." data-confirm-title="Hentikan paket" data-confirm-ok="Ya, hentikan" data-confirm-danger>Hentikan</button>
+                    </form>
+                }
+            }
+            else
+            {
+                <a class="btn btn-sm btn-tag" asp-controller="Deals" asp-action="Detail" asp-route-id="@b.Id" asp-route-offer="@Model.OfferId">Lihat &amp; pesan</a>
+            }
+        </div>
+    </div>
+</article>

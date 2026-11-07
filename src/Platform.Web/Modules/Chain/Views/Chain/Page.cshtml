@@ -1,0 +1,115 @@
+@using Platform.Web.Modules.Catalog.Contracts
+@model Platform.Web.Modules.Chain.Controllers.ChainPage
+@{
+    ViewData["Title"] = Model.Title;
+    var art = ViewData["Art"] as string ?? "kandang";
+    var prods = ViewData["ProductionProducts"] as IReadOnlyList<ProductDto>;
+    var isStockPage = Model.Title == "Manajemen Stok";
+    var opKey = Guid.NewGuid().ToString("N");
+    string[] icons = { "chart-column", "boxes", "truck", "wallet" };
+    string[] tones = { "good", "tag", "blue", "" };
+    static string Tone(string c) => c switch
+    {
+        "Selesai" or "Lulus" or "Lunas" or "Diterima" or "Aman" or "Baik" or "Berjalan" or "Dikirim" => "badge-ok",
+        "Habis" => "badge-danger",
+        "Menunggu" or "Dipesan" or "Terjadwal" or "Dijadwalkan" or "Belum bayar" or "Observasi" or "Tahan" or "Perlu tindakan" or "Jual murah" or "Dalam perjalanan" => "badge-warn",
+        _ => ""
+    };
+}
+
+<div class="greet chain-greet mt-2">
+    <div>
+        <h1>@Model.Title</h1>
+        @if (!string.IsNullOrEmpty(Model.Sub)) { <p>@Model.Sub</p> }
+    </div>
+    <div class="g-actions">
+        <a class="btn btn-lg" asp-controller="Products" asp-action="Index">@UiIcons.Svg("package", 20) Produk &amp; foto</a>
+    </div>
+    <img class="greet-art" src="~/img/chain/@(art).svg" alt="" loading="lazy">
+</div>
+
+@if (Model.K is { Count: > 0 })
+{
+    <div class="section-title mt-2"><span>@UiIcons.Svg("chart-column", 22)</span><h2>Ringkasan</h2></div>
+    <div class="grid @(Model.K.Count == 4 ? "grid-4" : "grid-3") kpis">
+        @for (var i = 0; i < Model.K.Count; i++)
+        {
+            <div class="kpi @tones[i % tones.Length]"><div class="row-between"><span class="k-label">@Model.K[i][0]</span><span class="k-ico">@UiIcons.Svg(icons[i % icons.Length], 20)</span></div><div class="k-value">@Model.K[i][1]</div></div>
+        }
+    </div>
+}
+
+@if (prods is not null)
+{
+    <div class="section-title mt-2"><span>@UiIcons.Svg("package", 22)</span><h2>@(isStockPage ? "Tambah stok produk" : "Catat hasil produksi")</h2></div>
+    <div class="card">
+        @if (prods.Count == 0)
+        {
+            <p class="muted">Belum ada produk. Tambahkan produk di <a asp-controller="Products" asp-action="Index">Produk &amp; foto</a> lebih dulu.</p>
+        }
+        else if (isStockPage)
+        {
+            <p class="muted small">Pilih produk dan jumlah stok masuk. Penambahan akan tercatat di riwayat pergerakan stok.</p>
+            <form asp-controller="Chain" asp-action="TambahStok" method="post" data-once>
+                <input type="hidden" name="opKey" value="@opKey" />
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="stock-product">Produk</label>
+                        <select id="stock-product" name="productId" required>
+                            <option value="">Pilih produk</option>
+                            @foreach (var p in prods) { <option value="@p.Id">@p.Name (@p.BaseUnitName)</option> }
+                        </select>
+                    </div>
+                    <div class="field"><label for="stock-qty">Jumlah stok masuk (satuan dasar)</label><input id="stock-qty" name="qty" type="number" min="1" max="1000000" step="1" required inputmode="numeric" /></div>
+                    <div class="field"><label for="stock-cost">Modal per satuan, Rp (opsional)</label><input id="stock-cost" name="cost" type="number" min="0" step="0.01" inputmode="decimal" /></div>
+                    <div class="field"><label for="stock-expiry">Tanggal kedaluwarsa (opsional)</label><input id="stock-expiry" name="expiry" type="date" /></div>
+                    <div class="field"><label for="stock-lot">Nomor lot (opsional)</label><input id="stock-lot" name="lot" maxlength="40" /></div>
+                    <div class="field"><label for="stock-note">Catatan (opsional)</label><input id="stock-note" name="note" maxlength="120" /></div>
+                </div>
+                <button type="submit" class="btn btn-lg">Tambah stok</button>
+            </form>
+        }
+        else
+        {
+            <form asp-controller="Chain" asp-action="CatatProduksi" method="post" data-once>
+                <input type="hidden" name="opKey" value="@opKey" />
+                <div class="form-grid">
+                    <div class="field"><label for="pr-kind">Jenis catatan</label><select id="pr-kind" name="kind"><option value="produksi">Hasil produksi / panen (stok bertambah)</option><option value="rusak">Barang rusak / susut (stok berkurang)</option></select></div>
+                    <div class="field"><label for="pr-product">Produk</label><select id="pr-product" name="productId">@foreach (var p in prods) { <option value="@p.Id">@p.Name (@p.BaseUnitName)</option> }</select></div>
+                    <div class="field"><label for="pr-qty">Jumlah (satuan dasar)</label><input id="pr-qty" name="qty" type="number" min="1" step="1" required inputmode="numeric" /></div>
+                    <div class="field"><label for="pr-cost">Biaya per satuan, Rp (opsional)</label><input id="pr-cost" name="cost" inputmode="decimal" /></div>
+                    <div class="field"><label for="pr-exp">Tanggal kedaluwarsa (opsional)</label><input id="pr-exp" name="expiry" type="date" /></div>
+                    <div class="field"><label for="pr-lot">Nomor lot (opsional)</label><input id="pr-lot" name="lot" maxlength="40" /></div>
+                    <div class="field"><label for="pr-note">Catatan (opsional)</label><input id="pr-note" name="note" maxlength="120" /></div>
+                </div>
+                <button type="submit" class="btn btn-lg">Simpan catatan</button>
+            </form>
+        }
+    </div>
+}
+
+@if (Model.H is { Count: > 0 } && Model.R is not null)
+{
+    <div class="section-title mt-2"><span>@UiIcons.Svg("list", 22)</span><h2>Rincian</h2></div>
+    <div class="card pad-0">
+        <div class="table-wrap">
+            <table class="table table-stack">
+                <thead><tr>@foreach (var h in Model.H) { <th>@h</th> }</tr></thead>
+                <tbody>
+                    @foreach (var r in Model.R)
+                    {
+                        <tr>
+                            @for (var c = 0; c < r.Length; c++)
+                            {
+                                var tone = Tone(r[c]);
+                                <td data-label="@Model.H[c]" class="@(c == 0 ? "cell-title" : "")">@if (tone != "") { <span class="badge @tone">@r[c]</span> } else if (c == 0) { <b>@r[c]</b> } else { @r[c] }</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.Note)) { <p class="muted small mt-2">@Model.Note</p> }

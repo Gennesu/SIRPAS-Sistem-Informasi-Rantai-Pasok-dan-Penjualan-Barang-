@@ -1,0 +1,144 @@
+@using Platform.Web.Modules.Rescue.ViewModels
+@model Platform.Web.Modules.Marketplace.Contracts.WholesalerDetailDto
+@{
+    var card = Model.Card;
+    ViewData["Title"] = card.Name;
+    ViewData["Nav"] = "Marketplace/Index";
+    var row = 0;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var canDeliver = card.OffersDelivery && card.DeliveryInRange;
+    var bundles = Model.Bundles ?? Array.Empty<Platform.Web.Modules.Rescue.Contracts.BundleDto>();
+}
+
+<div class="crumbs"><a asp-action="Index">Cari grosir</a> @UiIcons.Svg("chevron-right", 14) <span>@card.Name</span></div>
+
+<div class="shop-hero mt-2">
+    <span class="s-logo">@card.Name[..1].ToUpperInvariant()</span>
+    <div>
+        <h1>@card.Name</h1>
+        <div class="muted">@card.Address</div>
+        <div class="row mt-1" style="gap:6px">
+            @if (card.OffersDelivery) { <span class="badge badge-ok">@UiIcons.Svg("truck", 13) Diantar</span> }
+            @if (card.OffersPickup) { <span class="badge badge-ok">@UiIcons.Svg("hand-coins", 13) Ambil sendiri</span> }
+            @if (card.RescueDeals > 0) { <span class="badge badge-tag">@UiIcons.Svg("leaf", 13) @card.RescueDeals promo anti-mubazir</span> }
+        </div>
+    </div>
+    <div class="s-stats">
+        <div class="s-stat"><small>Jarak</small><b>@(card.DistanceKm is double km ? km.ToString("0.0") + " km" : "—")</b></div>
+        <div class="s-stat"><small>Ongkir ke Anda</small><b>@(!card.OffersDelivery ? "—" : !card.DeliveryInRange ? "Di luar jangkauan" : Rupiah.Format(card.DeliveryFee))</b></div>
+        <div class="s-stat"><small>Min. pesanan</small><b>@(card.MinOrderAmount > 0 ? Rupiah.Format(card.MinOrderAmount) : "Tanpa")</b></div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.DeliveryInfo) || !string.IsNullOrEmpty(Model.PickupInfo))
+{
+    <div class="row small muted mt-1" style="gap:20px">
+        @if (!string.IsNullOrEmpty(Model.DeliveryInfo)) { <span>@UiIcons.Svg("truck", 15) @Model.DeliveryInfo</span> }
+        @if (!string.IsNullOrEmpty(Model.PickupInfo)) { <span>@UiIcons.Svg("hand-coins", 15) @Model.PickupInfo</span> }
+    </div>
+}
+
+@if (bundles.Count > 0)
+{
+    <div class="section-title"><span>@UiIcons.Svg("leaf", 22)</span><h2>Promo anti-mubazir dari grosir ini</h2><span class="muted small">tanpa minimal pesanan</span></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr))">
+        @foreach (var b in bundles) { <partial name="_BundleTicket" model="new BundleTicketModel(b, false)" /> }
+    </div>
+}
+
+<form asp-controller="Orders" asp-action="Create" method="post" id="order-form" data-once
+      data-fee="@card.DeliveryFee.ToString(inv)" data-min="@card.MinOrderAmount.ToString(inv)">
+    <input type="hidden" name="IdempotencyKey" value="@Guid.NewGuid().ToString("N")" />
+    <input type="hidden" name="SellerBusinessId" value="@card.BusinessId" />
+    <div class="section-title"><span>@UiIcons.Svg("package", 22)</span><h2>Katalog &amp; pesan</h2></div>
+    <div class="split">
+        <div class="card">
+            <p class="muted small">Isi jumlah pada kemasan yang ingin dipesan. Stok dihitung dalam satuan dasar; harga per kemasan sudah termasuk isi.</p>
+            @foreach (var p in Model.Products)
+            {
+                <div class="prod-row">
+                    <div class="pcell">
+                        <partial name="_ProductThumb" model="new ProductThumbModel(p.ImagePath, p.Name, 56)" />
+                        <div class="grow">
+                            <div class="pr-name">@p.Name</div>
+                            <div class="muted small">@p.CategoryName · stok @p.StockText@(p.MoqBase > 1 ? $" · MOQ {p.MoqBase} {p.BaseUnitName}" : "")</div>
+                        </div>
+                    </div>
+                    <div class="pr-opts" style="justify-content:flex-end">
+                        @foreach (var u in p.Units)
+                        {
+                            var orderable = p.StockBase >= u.ConversionToBase;
+                            <div class="pr-unit">
+                                <span class="small"><b>@u.UnitName</b>@(u.ConversionToBase > 1 ? $" (isi {u.ConversionToBase})" : "") · <b class="num">@Rupiah.Format(u.Price)</b></span>
+                                @if (orderable)
+                                {
+                                    <input type="hidden" name="Lines[@row].ProductId" value="@p.ProductId" />
+                                    <input type="hidden" name="Lines[@row].UnitName" value="@u.UnitName" />
+                                    <div class="qty sm">
+                                        <button type="button" data-step="-1" aria-label="Kurangi @u.UnitName @p.Name">&minus;</button>
+                                        <input name="Lines[@row].QtyPack" class="order-qty" inputmode="numeric" data-price="@u.Price.ToString(inv)" placeholder="0" aria-label="Jumlah @u.UnitName @p.Name" />
+                                        <button type="button" data-step="1" aria-label="Tambah @u.UnitName @p.Name">+</button>
+                                    </div>
+                                    row++;
+                                }
+                                else
+                                {
+                                    <span class="badge badge-danger">Stok kurang</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="order-box">
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("shopping-cart", 21) Pesanan Anda</h2></div>
+                <div class="field">
+                    <span class="label">Cara terima</span>
+                    <div class="stack" style="--gap:8px">
+                        <label class="item-pick" style="grid-template-columns:auto 1fr auto;@(card.OffersPickup ? "" : "opacity:.55")">
+                            <input type="radio" name="Fulfillment" value="Pickup" disabled="@(!card.OffersPickup)" checked="@(!canDeliver)" />
+                            <span><b>Ambil sendiri</b><span class="muted small" style="display:block">Ambil di lokasi penjual.</span></span><b>Gratis</b>
+                        </label>
+                        <label class="item-pick" style="grid-template-columns:auto 1fr auto;@(canDeliver ? "" : "opacity:.55")">
+                            <input type="radio" name="Fulfillment" value="Delivery" disabled="@(!canDeliver)" checked="@canDeliver" />
+                            <span><b>Diantar penjual</b><span class="muted small" style="display:block">@(canDeliver ? $"Sekitar {(card.RoadKm is double rk ? rk.ToString("0.0") : "?")} km jalan{(card.TravelMinutes is int tm ? $", ±{tm} menit" : "")}." : (card.DeliveryNote ?? "Tidak tersedia."))</span></span>
+                            <b>@(canDeliver ? Rupiah.Format(card.DeliveryFee) : "—")</b>
+                        </label>
+                    </div>
+                </div>
+                @if (card.OffersDelivery && !card.DeliveryInRange)
+                {
+                    <div class="fee-note warn mb-2">@UiIcons.Svg("triangle-alert", 18)<span>@card.DeliveryNote</span></div>
+                }
+                else if (canDeliver && card.FeePerKm > 0)
+                {
+                    <div class="fee-note mb-2">@UiIcons.Svg("info", 18)<span>Ongkir mengikuti jarak: Rp@(((long)card.DeliveryFee).ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("id-ID"))) untuk jarak ini (tarif dasar sampai @card.FreeKm.ToString("0.#") km, lalu @Rupiah.Format(card.FeePerKm) per km).</span></div>
+                }
+
+                <div class="field" id="address-field">
+                    <label for="order-address">Alamat pengiriman</label>
+                    <textarea id="order-address" name="DeliveryAddress" rows="2" maxlength="300">@Model.BuyerAddress</textarea>
+                </div>
+                <div class="field"><label for="order-note">Catatan untuk penjual (opsional)</label><input id="order-note" name="Note" maxlength="200" /></div>
+
+                <hr class="divider-dash" />
+                <dl class="kv">
+                    <dt>Subtotal</dt><dd id="order-subtotal">Rp0</dd>
+                    <dt>Ongkir</dt><dd id="order-fee">Rp0</dd>
+                    <dt style="color:var(--ink);font-weight:800">Total</dt><dd id="order-total" class="display" style="font-size:1.35rem">Rp0</dd>
+                </dl>
+                <div class="mt-1" id="order-min-wrap" @(card.MinOrderAmount > 0 ? "" : "hidden")>
+                    <div class="bar tag"><i id="order-min-bar" style="width:0%"></i></div>
+                    <div class="hint mt-1" id="order-hint"></div>
+                </div>
+                <button type="submit" class="btn btn-lg btn-block mt-2" id="order-submit">@UiIcons.Svg("shopping-cart", 20) Buat pesanan</button>
+                <p class="hint center mt-1 mb-0">Pembayaran diatur langsung dengan penjual (transaksi ini hanya pencatatan; tidak ada uang yang diproses aplikasi). Pantau fase pesanan setelah dikirim.</p>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts { <script src="~/js/order-form.js" asp-append-version="true"></script> }

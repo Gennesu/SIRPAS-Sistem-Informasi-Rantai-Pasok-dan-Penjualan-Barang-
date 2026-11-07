@@ -1,0 +1,258 @@
+@using Platform.Web.Modules.Template.Contracts
+@using Platform.Web.Modules.Notifications.Contracts
+@using Platform.Web.Modules.BusinessProfile.Contracts
+@inject IMenuService MenuService
+@inject INotificationService NotificationService
+@inject IBusinessService BusinessService
+@inject IBusinessContext BusinessContext
+@functions {
+    private static int BadgeFor(string? key, NotificationSummary notes) => key switch
+    {
+        null => 0,
+        "expiring" => notes.Items.Where(i => i.Key is "expiring" or "expired").Sum(i => i.Count),
+        _ => notes.Items.Where(i => i.Key == key).Sum(i => i.Count)
+    };
+
+    private static string Initial(string? name) => string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[..1].ToUpperInvariant();
+}
+@{
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var isAdmin = User.IsInRole(RoleNames.Admin);
+    var isGrosir = User.IsInRole(RoleNames.Grossier);
+    var isLivestock = User.IsInRole(RoleNames.Livestock);
+    var isConsumer = User.IsInRole(RoleNames.Consumer);
+    var profileController = isConsumer ? "Consumer" : "Business";
+    var bare = ViewData["Bare"] is true || !signedIn;
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "Index";
+    var navOverride = ViewData["Nav"] as string; // "Controller/Action" bila halaman ingin menandai menu lain
+    var onHome = controller == "Home" && action == "Index"
+        || isAdmin && controller == "Home" && action == "AdminDashboard"
+        || isGrosir && controller == "Home" && action == "GrossierDashboard"
+        || isConsumer && controller == "Home" && action == "ConsumerDashboard"
+        || isLivestock && controller == "Chain" && action == "Dashboard"
+        || !isAdmin && !isGrosir && !isConsumer && !isLivestock
+            && controller == "Home" && action == "RetailDashboard";
+
+    IReadOnlyList<MenuItem> menu = signedIn ? await MenuService.GetMenuAsync() : Array.Empty<MenuItem>();
+    var notes = signedIn ? await NotificationService.GetAsync() : new NotificationSummary(0, Array.Empty<NotificationItem>());
+
+    string businessName = User.Identity?.Name ?? string.Empty;
+    if (signedIn && !isAdmin && !isConsumer && BusinessContext.BusinessId is int bizId)
+    {
+        var profile = await BusinessService.GetProfileAsync(bizId);
+        if (profile.Succeeded)
+        {
+            businessName = profile.Value!.Name;
+        }
+    }
+
+    bool IsActive(MenuItem item)
+    {
+        if (navOverride is not null)
+        {
+            return string.Equals(navOverride, $"{item.Controller}/{item.Action}", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (!string.Equals(item.Controller, controller, StringComparison.OrdinalIgnoreCase)) return false;
+        var sameController = menu.Where(m => string.Equals(m.Controller, controller, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (sameController.Count <= 1) return true;
+        return string.Equals(item.Action, action, StringComparison.OrdinalIgnoreCase)
+            || (item.Action == "Index" && !sameController.Any(m => string.Equals(m.Action, action, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    var sidebarGroups = menu.GroupBy(m => m.Group).ToList();
+    var role = isAdmin ? "Admin" : isGrosir ? "Agen" : isLivestock ? "Peternak" : isConsumer ? "Pembeli" : "Warung";
+    var roleClass = isAdmin ? "admin" : isGrosir ? "grosir" : "";
+    var actorTheme = !signedIn ? "public" : isAdmin ? "admin" : isGrosir ? "grosir" : isLivestock ? "peternak" : isConsumer ? "pembeli" : "warung";
+    // Semua aktor memakai tema utama aplikasi.
+    var theme = "green";
+    var themeColor = "#5a2c10";
+
+    // Menu bawah (ponsel): tujuan utama per role + "Menu".
+    (string Text, string Icon, string Controller, string Action, string? Badge)[] bottom;
+    if (isAdmin)
+    {
+        bottom = new[] { ("Beranda", "layout-dashboard", "Home", "AdminDashboard", (string?)null), ("Usaha", "building-2", "Admin", "Businesses", "verify"), ("Pesanan", "package", "Admin", "Orders", null) };
+    }
+    else if (isGrosir)
+    {
+        bottom = new[] { ("Beranda", "layout-dashboard", "Home", "GrossierDashboard", (string?)null), ("Anti-mubazir", "leaf", "Rescue", "Index", "expiring"), ("Pesanan", "inbox", "Orders", "Index", "orders-pending"), ("Stok", "boxes", "Stock", "Index", null) };
+    }
+    else if (isConsumer)
+    {
+        bottom = new[] { ("Beranda", "layout-dashboard", "Home", "ConsumerDashboard", (string?)null), ("Belanja", "store", "Shop", "Index", null), ("Pesanan", "receipt", "ConsumerOrders", "Index", null), ("Profil", "settings", "Consumer", "Profile", null) };
+    }
+    else if (isLivestock)
+    {
+        bottom = new[]
+        {
+            ("Beranda", "layout-dashboard", "Chain", "Dashboard", (string?)null),
+            ("Produksi", "package", "Chain", "Produksi", null),
+            ("Stok", "boxes", "Chain", "Stok", null),
+            ("Peta", "map-pin", "Map", "Index", null)
+        };
+    }
+    else
+    {
+        bottom = new[] { ("Beranda", "layout-dashboard", "Home", "RetailDashboard", (string?)null), ("Kasir", "calculator", "Pos", "Index", null), ("Belanja", "store", "Marketplace", "Index", null), ("Pesanan", "truck", "Orders", "Index", "orders-confirm") };
+    }
+    bottom = bottom.Where(b => b.Controller == "Home" || menu.Any(m => m.Controller == b.Controller)).ToArray();
+}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="@themeColor" />
+    <title>@(ViewData["Title"] ?? "SIRPAS") · SIRPAS</title>
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+</head>
+<body class="@("theme-" + theme + " actor-" + actorTheme)">
+@if (bare)
+{
+    @RenderBody()
+}
+else
+{
+    <a class="sr-only" href="#isi">Lewati ke konten</a>
+    <div class="app">
+        <aside class="side" id="sidebar" data-role="@role" aria-label="Navigasi utama">
+            <a class="brand" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark">@UiIcons.Svg("leaf", 22)</span>
+                <span>SIRPAS<small>Sistem Informasi Rantai Pasok</small></span>
+            </a>
+
+            <nav aria-label="Navigasi utama">
+                <a class="nav-item @(onHome ? "active" : "")" asp-controller="Home" asp-action="Index">@UiIcons.Svg("layout-dashboard", 19)<span>Beranda</span></a>
+                @for (var groupIndex = 0; groupIndex < sidebarGroups.Count; groupIndex++)
+                {
+                    var group = sidebarGroups[groupIndex];
+                    var groupItems = group.ToList();
+                    var groupIsOpen = groupItems.Any(IsActive);
+                    <details class="nav-section" open="@(groupIsOpen ? "open" : null)">
+                        <summary class="nav-section-title">
+                            <span>@group.Key</span>
+                            <span class="nav-section-chevron" aria-hidden="true">@UiIcons.Svg("chevron-down", 16)</span>
+                        </summary>
+                        <div class="nav-section-items">
+                            @foreach (var item in groupItems)
+                            {
+                                var badge = BadgeFor(item.BadgeKey, notes);
+                                <a class="nav-item @(IsActive(item) ? "active" : "")" asp-controller="@item.Controller" asp-action="@item.Action" data-badge-key="@item.BadgeKey">
+                                    @UiIcons.Svg(item.Icon, 19)<span>@item.Text</span>
+                                    @if (badge > 0) { <span class="nav-badge">@(badge > 99 ? "99+" : badge.ToString())</span> }
+                                </a>
+                            }
+                        </div>
+                    </details>
+                }
+            </nav>
+
+            <div class="side-foot">
+                <b>@businessName</b>
+                @role &middot; @User.Identity?.Name
+            </div>
+        </aside>
+        <div class="scrim" id="scrim" data-close-drawer></div>
+
+        <div class="main-col">
+            <header class="topbar">
+                <button class="icon-btn menu-btn" type="button" data-toggle-drawer aria-label="Buka menu">@UiIcons.Svg("menu", 22)</button>
+                <div class="who">
+                    <div class="who-identity">
+                        <b>@businessName</b>
+                        <div class="who-user">
+                            <span>@User.Identity?.Name</span>
+                            <span class="role-chip @roleClass">@role</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="top-actions">
+                    <div class="dropdown" data-dropdown>
+                        <button class="icon-btn" type="button" data-dropdown-toggle aria-label="Notifikasi" aria-haspopup="true">
+                            @UiIcons.Svg("bell", 21)
+                            <span class="dot @(notes.Total == 0 ? "hide" : "")" id="bell-count">@(notes.Total > 99 ? "99+" : notes.Total.ToString())</span>
+                        </button>
+                        <div class="dropdown-panel" id="bell-panel" role="menu">
+                            <h3>Notifikasi</h3>
+                            <div id="bell-list">
+                                @if (notes.Items.Count == 0)
+                                {
+                                    <div class="empty" style="padding:22px 12px"><p class="mb-0">Semua beres. Belum ada yang perlu Anda lakukan.</p></div>
+                                }
+                                @foreach (var n in notes.Items)
+                                {
+                                    <a class="note @n.Tone.ToString().ToLowerInvariant()" href="@n.Url">
+                                        <span class="ico">@UiIcons.Svg(n.Icon, 19)</span>
+                                        <span><b>@n.Title</b><span>@n.Detail</span></span>
+                                    </a>
+                                }
+                            </div>
+                            <a class="menu-link" asp-controller="Notifications" asp-action="Index">@UiIcons.Svg("list", 18) Lihat semua</a>
+                        </div>
+                    </div>
+                    <div class="dropdown" data-dropdown>
+                        <button class="avatar" type="button" data-dropdown-toggle aria-label="Akun saya" aria-haspopup="true" style="border:0;cursor:pointer">@Initial(User.Identity?.Name)</button>
+                        <div class="dropdown-panel" style="width:260px" role="menu">
+                            <div style="padding:10px 12px 8px"><b>@User.Identity?.Name</b><div class="muted small">@businessName</div></div>
+                            @if (!isAdmin)
+                            {
+                                <a class="menu-link" asp-controller="@profileController" asp-action="Profile">@UiIcons.Svg("settings", 18) Profil &amp; pengaturan</a>
+                            }
+                            <a class="menu-link" asp-controller="Notifications" asp-action="Index">@UiIcons.Svg("bell", 18) Notifikasi</a>
+                            <form asp-controller="Account" asp-action="Logout" method="post">
+                                <button class="menu-link" type="submit">@UiIcons.Svg("log-out", 18) Keluar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page @ViewData["PageClass"]" id="isi">
+                @if (TempData["Success"] is string success)
+                {
+                    <div class="alert alert-ok" role="status">@UiIcons.Svg("circle-check", 20)<div class="grow">@success</div></div>
+                }
+                @if (TempData["Error"] is string failure)
+                {
+                    <div class="alert alert-error" role="alert">@UiIcons.Svg("triangle-alert", 20)<div class="grow">@failure</div></div>
+                }
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <nav class="bottom-nav" aria-label="Menu cepat">
+        @foreach (var b in bottom)
+        {
+            var count = BadgeFor(b.Badge, notes);
+            var sameController = string.Equals(b.Controller, controller, StringComparison.OrdinalIgnoreCase);
+            var hasExactBottomRoute = bottom.Any(item => string.Equals(item.Controller, controller, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(item.Action, action, StringComparison.OrdinalIgnoreCase));
+            var active = sameController && (string.Equals(b.Action, action, StringComparison.OrdinalIgnoreCase)
+                || (!hasExactBottomRoute && (b.Action is "Index" or "Dashboard")));
+            <a href="@Url.Action(b.Action, b.Controller)" class="@(active ? "active" : "")">
+                @UiIcons.Svg(b.Icon, 22)
+                <span>@b.Text</span>
+                @if (count > 0) { <span class="badge-dot">@(count > 9 ? "9+" : count.ToString())</span> }
+            </a>
+        }
+        <button type="button" data-toggle-drawer>@UiIcons.Svg("menu", 22)<span>Menu</span></button>
+    </nav>
+
+    <dialog class="modal" id="confirm-dialog">
+        <div class="modal-head"><h2 id="confirm-title">Yakin?</h2></div>
+        <div class="modal-body"><p id="confirm-text" class="mb-1"></p></div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-secondary" data-confirm-no>Batal</button>
+            <button type="button" class="btn" id="confirm-yes" data-confirm-yes>Ya, lanjutkan</button>
+        </div>
+    </dialog>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+}
+    <script src="~/js/app.js" asp-append-version="true"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

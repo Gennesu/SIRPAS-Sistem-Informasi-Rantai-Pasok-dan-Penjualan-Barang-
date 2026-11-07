@@ -1,0 +1,406 @@
+
+@using Platform.Web.Modules.BusinessProfile.Domain
+@model IReadOnlyList<Platform.Web.Modules.Admin.Contracts.AdminBusinessDto>
+
+@{
+    ViewData["Title"] = "Usaha & Verifikasi";
+
+    var current = ViewData["Status"] as VerificationStatus?;
+
+    var pendingCount = Model.Count(b =>
+        b.Verification == VerificationStatus.Pending);
+
+    var verifiedCount = Model.Count(b =>
+        b.Verification == VerificationStatus.Verified);
+
+    var rejectedCount = Model.Count(b =>
+        b.Verification == VerificationStatus.Rejected);
+
+    var activeCount = Model.Count(b => b.IsActive);
+    var inactiveCount = Model.Count(b => !b.IsActive);
+
+    string RoleLabel(string role) =>
+        role == "Wholesale" ? "Grosir" : "Warung";
+
+    string RoleTone(string role) =>
+        role == "Wholesale" ? "badge-info" : "badge-ok";
+}
+
+<div class="page-head admin-page-head">
+    <div>
+        <span class="admin-eyebrow">MANAJEMEN MITRA</span>
+        <h1>Usaha &amp; verifikasi</h1>
+        <p class="lead">
+            Kelola profil usaha, status verifikasi, dan akses warung maupun grosir.
+            Grosir yang belum terverifikasi belum tampil di Marketplace dan Peta.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <span class="badge badge-info">
+            @Model.Count usaha ditemukan
+        </span>
+    </div>
+</div>
+
+<div class="admin-kpis admin-kpis-four">
+    <div class="admin-metric">
+        <div class="admin-metric-icon">
+            @UiIcons.Svg("store", 22)
+        </div>
+        <div>
+            <span>Total usaha</span>
+            <strong>@Model.Count</strong>
+            <small>Dalam hasil yang ditampilkan</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-gold">
+            @UiIcons.Svg("clock", 22)
+        </div>
+        <div>
+            <span>Menunggu verifikasi</span>
+            <strong>@pendingCount</strong>
+            <small>Perlu ditinjau admin</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon">
+            @UiIcons.Svg("shield-check", 22)
+        </div>
+        <div>
+            <span>Terverifikasi</span>
+            <strong>@verifiedCount</strong>
+            <small>Telah lolos verifikasi</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-blue">
+            @UiIcons.Svg("store", 22)
+        </div>
+        <div>
+            <span>Usaha aktif</span>
+            <strong>@activeCount</strong>
+            <small>@inactiveCount usaha nonaktif</small>
+        </div>
+    </div>
+</div>
+
+<section class="card admin-panel mt-2">
+    <div class="card-head">
+        <div>
+            <h2>
+                @UiIcons.Svg("filter", 21)
+                Filter usaha
+            </h2>
+            <p class="muted small mb-0">
+                Saring daftar berdasarkan hasil verifikasi.
+            </p>
+        </div>
+    </div>
+
+    <form method="get"
+          asp-controller="Admin"
+          asp-action="Businesses"
+          class="admin-filter-form">
+
+        <div class="field">
+            <label for="business-status">Status verifikasi</label>
+
+            <select id="business-status" name="status">
+                <option value=""
+                        selected="@(!current.HasValue)">
+                    Semua status
+                </option>
+
+                <option value="Pending"
+                        selected="@(current == VerificationStatus.Pending)">
+                    Menunggu verifikasi
+                </option>
+
+                <option value="Verified"
+                        selected="@(current == VerificationStatus.Verified)">
+                    Terverifikasi
+                </option>
+
+                <option value="Rejected"
+                        selected="@(current == VerificationStatus.Rejected)">
+                    Ditolak
+                </option>
+            </select>
+        </div>
+
+        <div class="admin-filter-actions">
+            <button type="submit" class="btn">
+                @UiIcons.Svg("filter", 17)
+                Terapkan filter
+            </button>
+
+            <a class="btn btn-secondary"
+               asp-controller="Admin"
+               asp-action="Businesses">
+                Reset
+            </a>
+        </div>
+    </form>
+
+    <div class="admin-quick-filters">
+        <a class="chip @(!current.HasValue ? "active" : "")"
+           asp-controller="Admin"
+           asp-action="Businesses">
+            Semua
+        </a>
+
+        <a class="chip @(current == VerificationStatus.Pending ? "active" : "")"
+           href="@Url.Action("Businesses", "Admin", new { status = VerificationStatus.Pending })">
+            Menunggu
+            <span class="count">@pendingCount</span>
+        </a>
+
+        <a class="chip @(current == VerificationStatus.Verified ? "active" : "")"
+           href="@Url.Action("Businesses", "Admin", new { status = VerificationStatus.Verified })">
+            Terverifikasi
+        </a>
+
+        <a class="chip @(current == VerificationStatus.Rejected ? "active" : "")"
+           href="@Url.Action("Businesses", "Admin", new { status = VerificationStatus.Rejected })">
+            Ditolak
+        </a>
+    </div>
+</section>
+
+<section class="card admin-table-card mt-2">
+    <div class="card-head admin-table-heading">
+        <div>
+            <h2>
+                @UiIcons.Svg("building-2", 21)
+                Daftar usaha
+            </h2>
+            <p class="muted small mb-0">
+                Informasi pemilik, tipe bisnis, verifikasi, dan akses.
+            </p>
+        </div>
+
+        <span class="badge">@Model.Count usaha</span>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-stack hover admin-table admin-business-table">
+            <thead>
+                <tr>
+                    <th>Usaha</th>
+                    <th>Peran</th>
+                    <th>Pemilik</th>
+                    <th>Alamat</th>
+                    <th>Verifikasi</th>
+                    <th>Akses</th>
+                    <th>Tindakan</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var b in Model)
+                {
+                    <tr>
+                        <td data-label="Usaha" class="cell-title">
+                            <div class="admin-business-name">
+                                <span class="admin-business-icon">
+                                    @UiIcons.Svg("store", 19)
+                                </span>
+
+                                <div>
+                                    <strong>@b.Name</strong>
+                                    <span>@b.TypeName</span>
+                                    <small>ID usaha #@b.Id</small>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td data-label="Peran">
+                            <span class="badge @RoleTone(b.MarketRole)">
+                                @RoleLabel(b.MarketRole)
+                            </span>
+                        </td>
+
+                        <td data-label="Pemilik">
+                            @if (!string.IsNullOrWhiteSpace(b.OwnerEmail))
+                            {
+                                <div class="admin-object">
+                                    <strong>@b.OwnerEmail</strong>
+                                    <span>Pemilik terdaftar</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="muted small">Belum diketahui</span>
+                            }
+                        </td>
+
+                        <td data-label="Alamat">
+                            <div class="admin-address">
+                                @if (!string.IsNullOrWhiteSpace(b.Address))
+                                {
+                                    @b.Address
+                                }
+                                else
+                                {
+                                    <span class="muted">Alamat belum diisi</span>
+                                }
+                            </div>
+                        </td>
+
+                        <td data-label="Verifikasi">
+                            @switch (b.Verification)
+                            {
+                                case VerificationStatus.Verified:
+                                    <span class="badge badge-ok">
+                                        <span class="admin-status-dot"></span>
+                                        Terverifikasi
+                                    </span>
+                                    break;
+
+                                case VerificationStatus.Rejected:
+                                    <span class="badge badge-danger">
+                                        Ditolak
+                                    </span>
+                                    break;
+
+                                default:
+                                    <span class="badge badge-warn">
+                                        <span class="admin-status-dot"></span>
+                                        Menunggu
+                                    </span>
+                                    break;
+                            }
+                        </td>
+
+                        <td data-label="Akses">
+                            @if (b.IsActive)
+                            {
+                                <span class="badge badge-ok">
+                                    <span class="admin-status-dot"></span>
+                                    Aktif
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-danger">
+                                    <span class="admin-status-dot"></span>
+                                    Nonaktif
+                                </span>
+                            }
+                        </td>
+
+                        <td data-label="Tindakan">
+                            <div class="admin-business-actions">
+                                @if (b.Verification != VerificationStatus.Verified)
+                                {
+                                    <form asp-controller="Admin"
+                                          asp-action="Verify"
+                                          method="post"
+                                          data-once
+                                          data-confirm="Verifikasi usaha @b.Name?">
+
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@b.Id" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm">
+                                            @UiIcons.Svg("check-circle", 16)
+                                            Verifikasi
+                                        </button>
+                                    </form>
+                                }
+
+                                @if (b.Verification != VerificationStatus.Rejected)
+                                {
+                                    <form asp-controller="Admin"
+                                          asp-action="Reject"
+                                          method="post"
+                                          data-once
+                                          data-confirm="Tolak verifikasi usaha @b.Name?">
+
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@b.Id" />
+
+                                        <button type="submit"
+                                                class="btn btn-sm btn-danger-ghost">
+                                            @UiIcons.Svg("x-circle", 16)
+                                            Tolak
+                                        </button>
+                                    </form>
+                                }
+
+                                <form asp-controller="Admin"
+                                      asp-action="SetBusinessActive"
+                                      method="post"
+                                      data-once
+                                      data-confirm="@(b.IsActive
+                                          ? "Nonaktifkan usaha " + b.Name + "?"
+                                          : "Aktifkan usaha " + b.Name + "?")">
+
+                                    <input type="hidden"
+                                           name="id"
+                                           value="@b.Id" />
+
+                                    <input type="hidden"
+                                           name="active"
+                                           value="@((!b.IsActive).ToString().ToLowerInvariant())" />
+
+                                    <button type="submit"
+                                            class="btn btn-sm @(b.IsActive ? "btn-danger" : "btn-secondary")">
+                                        @if (b.IsActive)
+                                        {
+                                            @UiIcons.Svg("power", 16)
+                                            <text>Nonaktifkan</text>
+                                        }
+                                        else
+                                        {
+                                            @UiIcons.Svg("power", 16)
+                                            <text>Aktifkan</text>
+                                        }
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="admin-empty">
+                                @UiIcons.Svg("building-2", 30)
+                                <strong>Tidak ada usaha ditemukan</strong>
+                                <span>
+                                    Ubah filter atau tampilkan semua usaha.
+                                </span>
+
+                                <a class="btn btn-secondary btn-sm"
+                                   asp-controller="Admin"
+                                   asp-action="Businesses">
+                                    Tampilkan semua
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="admin-table-foot">
+        <span>
+            @Model.Count usaha ditampilkan.
+        </span>
+        <span>
+            @rejectedCount usaha ditolak dalam hasil ini.
+        </span>
+    </div>
+</section>

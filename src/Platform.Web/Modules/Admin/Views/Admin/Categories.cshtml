@@ -1,0 +1,204 @@
+@model IReadOnlyList<Platform.Web.Modules.Catalog.Contracts.CategoryDto>
+
+@{
+    ViewData["Title"] = "Kategori";
+}
+
+<div class="page-head admin-page-head">
+    <div>
+        <span class="admin-eyebrow">PENGELOLAAN DATA</span>
+        <h1>Kategori produk</h1>
+        <p class="lead">
+            Kelola kategori produk yang digunakan bersama oleh warung dan grosir.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <span class="badge badge-info">
+            @Model.Count kategori
+        </span>
+    </div>
+</div>
+
+<div class="admin-kpis">
+    <div class="admin-metric">
+        <div class="admin-metric-icon">
+            @UiIcons.Svg("layers", 22)
+        </div>
+        <div>
+            <span>Total kategori</span>
+            <strong>@Model.Count</strong>
+            <small>Kategori terdaftar di platform</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-gold">
+            @UiIcons.Svg("package", 22)
+        </div>
+        <div>
+            <span>Cakupan data</span>
+            <strong>Global</strong>
+            <small>Berlaku untuk semua usaha</small>
+        </div>
+    </div>
+</div>
+
+<div class="split even mt-2">
+    <section class="card admin-panel">
+        <div class="card-head">
+            <div>
+                <h2>
+                    @UiIcons.Svg("plus-circle", 21)
+                    Tambah kategori
+                </h2>
+                <p class="muted small mb-0">
+                    Daftarkan kategori produk baru.
+                </p>
+            </div>
+            <span class="badge badge-ok">Tambah</span>
+        </div>
+
+        <form asp-controller="Admin"
+              asp-action="AddCategory"
+              method="post"
+              class="admin-add-form"
+              data-once>
+
+            <div class="field">
+                <label for="category-name">Nama kategori</label>
+                <input id="category-name"
+                       name="name"
+                       type="text"
+                       placeholder="Contoh: Minuman"
+                       required
+                       autocomplete="off" />
+            </div>
+
+            <button type="submit" class="btn btn-block">
+                @UiIcons.Svg("plus", 18)
+                Tambahkan kategori
+            </button>
+        </form>
+    </section>
+
+    <section class="card admin-panel admin-info-panel">
+        <div class="card-head">
+            <h2>
+                @UiIcons.Svg("info", 21)
+                Informasi kategori
+            </h2>
+        </div>
+
+        <div class="admin-info-row">
+            <span class="admin-info-icon">
+                @UiIcons.Svg("check-circle", 19)
+            </span>
+            <div>
+                <strong>Data bersama</strong>
+                <p>
+                    Kategori tersedia sebagai referensi untuk seluruh usaha.
+                </p>
+            </div>
+        </div>
+
+        <div class="admin-info-row">
+            <span class="admin-info-icon">
+                @UiIcons.Svg("pencil", 19)
+            </span>
+            <div>
+                <strong>Ubah nama kategori</strong>
+                <p>
+                    Gunakan tombol Simpan pada kategori yang ingin diperbarui.
+                </p>
+            </div>
+        </div>
+    </section>
+</div>
+
+<section class="card admin-table-card mt-2">
+    <div class="card-head admin-table-heading">
+        <div>
+            <h2>
+                @UiIcons.Svg("list", 21)
+                Daftar kategori
+            </h2>
+            <p class="muted small mb-0">
+                Kategori yang dapat dikelola oleh administrator.
+            </p>
+        </div>
+
+        <span class="badge">
+            @Model.Count data
+        </span>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-stack hover admin-table">
+            <thead>
+                <tr>
+                    <th style="width:90px">ID</th>
+                    <th>Nama kategori</th>
+                    <th style="width:130px">Tindakan</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td data-label="ID">
+                            <span class="admin-id">#@c.Id</span>
+                        </td>
+
+                        <td data-label="Nama kategori">
+                            <form asp-controller="Admin"
+                                  asp-action="RenameCategory"
+                                  method="post"
+                                  class="admin-rename-form"
+                                  data-once>
+
+                                <input type="hidden"
+                                       name="id"
+                                       value="@c.Id" />
+
+                                <input type="text"
+                                       name="name"
+                                       value="@c.Name"
+                                       aria-label="Nama kategori @c.Name"
+                                       required />
+
+                                <button type="submit"
+                                        class="btn btn-sm btn-secondary">
+                                    Simpan
+                                </button>
+                            </form>
+                        </td>
+
+                        <td data-label="Tindakan">
+                            <span class="badge badge-muted">
+                                @UiIcons.Svg("shield-check", 14)
+                                Admin
+                            </span>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="3">
+                            <div class="admin-empty">
+                                @UiIcons.Svg("layers", 30)
+                                <strong>Belum ada kategori</strong>
+                                <span>
+                                    Gunakan form Tambah kategori untuk memulai.
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

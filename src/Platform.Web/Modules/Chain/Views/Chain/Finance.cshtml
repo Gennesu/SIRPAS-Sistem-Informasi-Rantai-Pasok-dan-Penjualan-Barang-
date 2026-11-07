@@ -1,0 +1,106 @@
+@using Platform.Web.Modules.Orders.Domain
+@model Platform.Web.Modules.Chain.ViewModels.ChainFinanceViewModel
+@{
+    ViewData["Title"] = "Keuangan & laporan";
+}
+
+<div class="page-head">
+    <div>
+        <h1>Keuangan &amp; laporan</h1>
+        <p class="lead">Periode @WibTime.Format(Model.From) s.d. @WibTime.Format(Model.To). Ringkasan dihitung dari penjualan yang sudah diterima agen, biaya tercatat, pergerakan produksi, dan stok peternakan.</p>
+    </div>
+</div>
+
+<div class="card mb-2">
+    <form asp-action="Keuangan" method="get" class="form-grid" style="align-items:end">
+        <div class="field"><label for="report-from">Dari tanggal</label><input id="report-from" type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" /></div>
+        <div class="field"><label for="report-to">Sampai tanggal</label><input id="report-to" type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" /></div>
+        <div><button class="btn" type="submit">Tampilkan laporan</button></div>
+    </form>
+</div>
+
+<div class="grid grid-4 kpis mt-1">
+    <div class="kpi"><div class="row-between"><span class="k-label">Penjualan selesai</span><span class="k-ico">@UiIcons.Svg("wallet", 20)</span></div><div class="k-value">@Rupiah.Format(Model.Revenue)</div></div>
+    <div class="kpi warn"><div class="row-between"><span class="k-label">Modal barang terjual</span><span class="k-ico">@UiIcons.Svg("package", 20)</span></div><div class="k-value">@Rupiah.Format(Model.CostOfGoods)</div></div>
+    <div class="kpi good"><div class="row-between"><span class="k-label">Laba kotor</span><span class="k-ico">@UiIcons.Svg("trending-up", 20)</span></div><div class="k-value">@Rupiah.Format(Model.GrossProfit)</div></div>
+    <div class="kpi accent"><div class="row-between"><span class="k-label">Laba setelah biaya</span><span class="k-ico">@UiIcons.Svg("circle-dollar-sign", 20)</span></div><div class="k-value">@Rupiah.Format(Model.NetProfit)</div></div>
+</div>
+
+<div class="split mt-2">
+    <div class="card">
+        <div class="card-head"><h2>@UiIcons.Svg("scale", 21) Ringkasan laba rugi</h2></div>
+        <dl class="kv" style="grid-template-columns:1fr auto">
+            <dt>Penjualan selesai</dt><dd>@Rupiah.Format(Model.Revenue)</dd>
+            <dt>Modal barang terjual</dt><dd>&minus; @Rupiah.Format(Model.CostOfGoods)</dd>
+            <dt>Laba kotor</dt><dd><b>@Rupiah.Format(Model.GrossProfit)</b></dd>
+            <dt>Pengeluaran operasional</dt><dd>&minus; @Rupiah.Format(Model.Expenses)</dd>
+            <dt><b>Laba setelah biaya</b></dt><dd><b>@Rupiah.Format(Model.NetProfit)</b></dd>
+            <dt>Penjualan menunggu konfirmasi agen</dt><dd>@Rupiah.Format(Model.PendingSales)</dd>
+            <dt>Nilai persediaan saat ini</dt><dd>@Rupiah.Format(Model.InventoryValue)</dd>
+        </dl>
+        @if (!Model.HasProductionCosts)
+        {
+            <p class="hint mt-2 mb-0">Sebagian penjualan belum memiliki catatan modal stok. Isi biaya per satuan saat mencatat produksi agar perhitungan laba lebih akurat.</p>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>@UiIcons.Svg("plus", 21) Catat pengeluaran</h2></div>
+        <form asp-action="AddExpense" method="post" data-once>
+            <input type="hidden" name="from" value="@Model.From.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="to" value="@Model.To.ToString("yyyy-MM-dd")" />
+            <div class="form-grid">
+                <div class="field"><label for="expense-category">Kategori biaya</label><select id="expense-category" name="Category">@foreach (var category in Model.ExpenseCategories) { <option value="@category">@category</option> }</select></div>
+                <div class="field"><label for="expense-amount">Jumlah (Rp)</label><input id="expense-amount" name="Amount" type="number" min="1" step="1" required inputmode="numeric" /></div>
+                <div class="field"><label for="expense-date">Tanggal</label><input id="expense-date" name="Date" type="date" value="@Model.To.ToString("yyyy-MM-dd")" required /></div>
+                <div class="field"><label for="expense-note">Catatan</label><input id="expense-note" name="Note" maxlength="200" /></div>
+            </div>
+            <button class="btn btn-block" type="submit">Simpan pengeluaran</button>
+        </form>
+    </div>
+</div>
+
+<div class="section-title mt-2"><span>@UiIcons.Svg("chart-column", 22)</span><h2>Penjualan per agen</h2></div>
+<div class="card pad-0">
+    <div class="table-wrap"><table class="table table-stack">
+        <thead><tr><th>Agen</th><th class="right">Transaksi selesai</th><th class="right">Penjualan selesai</th><th class="right">Menunggu konfirmasi</th></tr></thead>
+        <tbody>
+        @if (Model.SalesByAgent.Count == 0) { <tr><td colspan="4" class="muted">Belum ada transaksi pada periode ini.</td></tr> }
+        @foreach (var row in Model.SalesByAgent)
+        {
+            <tr><td class="cell-title"><b>@row.AgentName</b></td><td class="right" data-label="Transaksi selesai">@row.CompletedCount</td><td class="right num" data-label="Penjualan selesai">@Rupiah.Format(row.Revenue)</td><td class="right num" data-label="Menunggu konfirmasi">@Rupiah.Format(row.PendingAmount)</td></tr>
+        }
+        </tbody>
+    </table></div>
+</div>
+
+<div class="section-title mt-2"><span>@UiIcons.Svg("package", 22)</span><h2>Laporan produksi dan barang rusak</h2></div>
+<div class="card pad-0">
+    <div class="table-wrap"><table class="table table-stack">
+        <thead><tr><th>Produk</th><th class="right">Hasil produksi</th><th class="right">Rusak / susut</th></tr></thead>
+        <tbody>
+        @if (Model.Production.Count == 0) { <tr><td colspan="3" class="muted">Belum ada catatan produksi atau barang rusak pada periode ini.</td></tr> }
+        @foreach (var row in Model.Production)
+        {
+            <tr><td class="cell-title"><b>@row.ProductName</b><span class="sub">Satuan dasar: @row.UnitName</span></td><td class="right" data-label="Hasil produksi">@Rupiah.Number(row.ProducedBase, 0) @row.UnitName</td><td class="right" data-label="Rusak / susut">@Rupiah.Number(row.DamagedBase, 0) @row.UnitName</td></tr>
+        }
+        </tbody>
+    </table></div>
+</div>
+
+<div class="section-title mt-2"><span>@UiIcons.Svg("receipt", 22)</span><h2>Rincian pengeluaran</h2></div>
+<div class="card pad-0">
+    <div class="table-wrap"><table class="table table-stack">
+        <thead><tr><th>Tanggal</th><th>Kategori</th><th>Catatan</th><th class="right">Jumlah</th><th></th></tr></thead>
+        <tbody>
+        @if (Model.ExpenseRows.Count == 0) { <tr><td colspan="5" class="muted">Belum ada pengeluaran pada periode ini.</td></tr> }
+        @foreach (var row in Model.ExpenseRows)
+        {
+            <tr>
+                <td data-label="Tanggal">@WibTime.Format(row.Date)</td><td data-label="Kategori">@row.Category</td><td data-label="Catatan">@(row.Note ?? "—")</td><td class="right num" data-label="Jumlah"><b>@Rupiah.Format(row.Amount)</b></td>
+                <td class="right"><form asp-action="DeleteExpense" method="post" data-once><input type="hidden" name="id" value="@row.Id" /><input type="hidden" name="from" value="@Model.From.ToString("yyyy-MM-dd")" /><input type="hidden" name="to" value="@Model.To.ToString("yyyy-MM-dd")" /><button class="btn btn-sm btn-danger-ghost" type="submit" data-confirm="Hapus catatan biaya ini?" data-confirm-danger>Hapus</button></form></td>
+            </tr>
+        }
+        </tbody>
+    </table></div>
+</div>

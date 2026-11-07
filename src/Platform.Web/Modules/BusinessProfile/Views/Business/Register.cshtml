@@ -1,0 +1,88 @@
+@model Platform.Web.Modules.BusinessProfile.ViewModels.RegisterViewModel
+@using Platform.Web.Modules.BusinessProfile.Domain
+@{
+    ViewData["Title"] = "Daftarkan usaha";
+    ViewData["Bare"] = true;
+}
+@section Styles { <partial name="_MapStyles" /> }
+
+<div class="auth">
+    <section class="auth-hero"><div class="auth-hero-inner">
+        <a class="brand" asp-controller="Home" asp-action="Index">
+            <span class="brand-mark">@UiIcons.Svg("leaf", 22)</span>
+            <span>SIRPAS<small>Sistem Informasi Rantai Pasok</small></span>
+        </a>
+        <div style="position:relative;z-index:2">
+            <h1>Daftar sekali, <em>langsung jualan.</em></h1>
+            <p class="lead">Buat akun pemilik dan profil usaha. Setelah diverifikasi admin, usaha Anda tampil di marketplace dan peta.</p>
+            <ul class="auth-points">
+                <li><span class="ap-ico">@UiIcons.Svg("store", 21)</span><span><b>Warung</b><span>Kasir, stok, dan belanja ke grosir terdekat dengan ongkir sesuai jarak.</span></span></li>
+                <li><span class="ap-ico">@UiIcons.Svg("warehouse", 21)</span><span><b>Grosir</b><span>Kelola katalog, stok bertanggal kadaluarsa, pesanan, dan penawaran ke warung.</span></span></li>
+                <li><span class="ap-ico">@UiIcons.Svg("shield-check", 21)</span><span><b>Diverifikasi admin</b><span>Usaha baru berstatus menunggu verifikasi sebelum muncul di marketplace.</span></span></li>
+            </ul>
+        </div>
+    </div></section>
+
+    <section class="auth-panel" style="align-items:start">
+        <div class="auth-card" style="width:min(640px,100%)">
+            <h2>Daftarkan usaha</h2>
+            <p class="muted">Isi data pemilik dan usaha. Titik lokasi dipakai untuk jarak dan ongkir.</p>
+
+            <form asp-controller="Business" asp-action="Register" method="post" data-once>
+                <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+                <div class="field">
+                    <span class="label">Daftar sebagai</span>
+                    <div class="grid grid-2" style="gap:10px">
+                        <label class="item-pick" style="grid-template-columns:auto 1fr">
+                            <input type="radio" asp-for="MarketRole" value="@MarketRole.Retail" />
+                            <span><b>Warung / toko retail</b><span class="muted small" style="display:block">Membeli dari grosir, punya kasir.</span></span>
+                        </label>
+                        <label class="item-pick" style="grid-template-columns:auto 1fr">
+                            <input type="radio" asp-for="MarketRole" value="@MarketRole.Wholesale" />
+                            <span><b>Toko grosir</b><span class="muted small" style="display:block">Menjual ke warung, atur ongkir.</span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <h3 class="mb-1 mt-2">Akun pemilik</h3>
+                <div class="form-grid">
+                    <div class="field"><label asp-for="OwnerName"></label><input asp-for="OwnerName" autocomplete="name" /><span asp-validation-for="OwnerName" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="Email"></label><input asp-for="Email" type="email" autocomplete="email" /><span asp-validation-for="Email" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="Password"></label><input asp-for="Password" autocomplete="new-password" /><span class="hint">Minimal 8 karakter.</span><span asp-validation-for="Password" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="ConfirmPassword"></label><input asp-for="ConfirmPassword" autocomplete="new-password" /><span asp-validation-for="ConfirmPassword" class="field-validation-error"></span></div>
+                </div>
+
+                <h3 class="mb-1 mt-2">Data usaha</h3>
+                <div class="form-grid">
+                    <div class="field"><label asp-for="BusinessName"></label><input asp-for="BusinessName" /><span asp-validation-for="BusinessName" class="field-validation-error"></span></div>
+                    <div class="field">
+                        <label asp-for="BusinessTypeId"></label>
+                        <select asp-for="BusinessTypeId" asp-items="Model.BusinessTypes"><option value="0">Pilih jenis bisnis</option></select>
+                        <span asp-validation-for="BusinessTypeId" class="field-validation-error"></span>
+                    </div>
+                    <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" type="tel" autocomplete="tel" placeholder="0812xxxxxxx" /><span asp-validation-for="Phone" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="Address"></label><input asp-for="Address" autocomplete="street-address" /><span asp-validation-for="Address" class="field-validation-error"></span></div>
+                </div>
+
+                <div class="field">
+                    <span class="label">Lokasi usaha di peta</span>
+                    <partial name="_LocationPicker" model='new LocationPickerModel("Latitude", "Longitude", "Address")' />
+                    <span class="hint">Cari alamat atau geser peta sampai pin tepat di toko. Titik ini dipakai menghitung jarak dan ongkir. Boleh dikosongkan dan diisi nanti di Profil.</span>
+                </div>
+                <div class="form-grid">
+                    <div class="field"><label asp-for="Latitude"></label><input asp-for="Latitude" inputmode="decimal" placeholder="-6.9175" /><span asp-validation-for="Latitude" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="Longitude"></label><input asp-for="Longitude" inputmode="decimal" placeholder="107.6191" /><span asp-validation-for="Longitude" class="field-validation-error"></span></div>
+                </div>
+
+                <button type="submit" class="btn btn-lg btn-block">Daftar</button>
+            </form>
+            <p class="muted mt-2">Sudah punya akun? <a asp-controller="Account" asp-action="Login"><b>Masuk</b></a></p>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_MapScripts" />
+    <script src="~/js/location-picker.js" asp-append-version="true"></script>
+}

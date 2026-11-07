@@ -1,0 +1,80 @@
+@model IReadOnlyList<Platform.Web.Modules.Purchasing.Contracts.PurchaseSummaryDto>
+@{
+    ViewData["Title"] = User.IsInRole(RoleNames.Grossier) ? "Stok masuk" : "Pembelian";
+}
+
+<div class="page-head">
+    <div>
+        <h1>@ViewData["Title"]</h1>
+        <p class="lead">
+            Setiap pencatatan menambah stok dan memperbarui modal rata-rata per item.
+            Isi tanggal kadaluarsa agar barang masuk ke dashboard food waste.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <a class="btn" asp-controller="Purchases" asp-action="Create">
+            @UiIcons.Svg("plus", 18)
+            Catat @(User.IsInRole(RoleNames.Grossier) ? "stok masuk" : "pembelian")
+        </a>
+    </div>
+</div>
+
+<div class="card pad-0">
+    <div class="table-wrap">
+        <table class="table table-stack hover">
+            <thead>
+                <tr>
+                    <th>Tanggal (WIB)</th>
+                    <th>Pemasok</th>
+                    <th>Barang</th>
+                    <th class="right">Total</th>
+                    <th>Sumber</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td class="cell-title">
+                            <span class="name">@WibTime.FormatDateTime(p.PurchasedAt)</span>
+                        </td>
+
+                        <td data-label="Pemasok">@p.SupplierName</td>
+
+                        <td data-label="Barang" class="small" style="max-width:380px">
+                            @p.ItemsText
+                        </td>
+
+                        <td class="right num" data-label="Total">
+                            <b>@Rupiah.Format(p.TotalAmount)</b>
+                        </td>
+
+                        <td data-label="Sumber">
+                            <span class="badge @(p.Source == "Order" ? "badge-tag" : "")">
+                                @p.Source
+                            </span>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty">
+                                <div class="e-ico">@UiIcons.Svg("package-open", 28)</div>
+                                <h3>Belum ada catatan</h3>
+                                <p>Catat pembelian pertama untuk menambah stok.</p>
+                                <a class="btn" asp-controller="Purchases" asp-action="Create">
+                                    Catat sekarang
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

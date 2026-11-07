@@ -1,0 +1,77 @@
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Orders.Domain
+@model Platform.Web.Modules.Chain.ViewModels.LivestockSalesViewModel
+@{
+    ViewData["Title"] = "Penjualan ke agen";
+    var key = Guid.NewGuid().ToString("N");
+}
+
+<div class="page-head">
+    <div>
+        <h1>Penjualan ke agen</h1>
+        <p class="lead">Pilih agen terverifikasi dan catat barang yang diserahkan. Stok peternakan berkurang saat dicatat, lalu stok agen bertambah setelah penerimaan dikonfirmasi.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-secondary" asp-action="Keuangan">@UiIcons.Svg("wallet", 18) Keuangan &amp; laporan</a></div>
+</div>
+
+<div class="card">
+    <div class="card-head"><h2>@UiIcons.Svg("hand-coins", 21) Catat penjualan baru</h2></div>
+    @if (Model.Agents.Count == 0)
+    {
+        <div class="empty"><div class="e-ico">@UiIcons.Svg("store", 30)</div><h3>Belum ada agen yang bisa dipilih</h3><p>Agen harus aktif dan sudah terverifikasi agar dapat menerima penjualan.</p></div>
+    }
+    else if (Model.Products.Count == 0)
+    {
+        <p class="muted">Tambahkan produk terlebih dahulu di menu Produk &amp; foto produk.</p>
+    }
+    else
+    {
+        <form asp-action="CreateSale" method="post" data-once>
+            <input type="hidden" name="IdempotencyKey" value="@key" />
+            <div class="form-grid">
+                <div class="field"><label for="sale-agent">Agen penerima</label><select id="sale-agent" name="AgentBusinessId" required><option value="">Pilih agen</option>@foreach (var agent in Model.Agents) { <option value="@agent.Id">@agent.Name</option> }</select></div>
+                <div class="field"><label for="sale-note">Catatan serah terima (opsional)</label><input id="sale-note" name="Note" maxlength="200" placeholder="Contoh: diambil oleh kurir agen" /></div>
+            </div>
+            <div class="table-wrap mt-1"><table class="table table-stack">
+                <thead><tr><th>Produk</th><th class="right">Stok tersedia</th><th class="right">Harga per satuan dasar</th><th class="right">Jumlah diserahkan</th></tr></thead>
+                <tbody>
+                @for (var i = 0; i < Model.Products.Count; i++)
+                {
+                    var product = Model.Products[i];
+                    <tr>
+                        <td class="cell-title"><b>@product.Name</b><span class="sub">@product.UnitName</span></td>
+                        <td class="right" data-label="Stok tersedia">@Rupiah.Number(product.AvailableBase, 0) @product.UnitName</td>
+                        <td class="right num" data-label="Harga per satuan dasar">@(product.UnitPrice is decimal price ? Rupiah.Format(price) : "Harga belum diatur")</td>
+                        <td class="right" data-label="Jumlah diserahkan">
+                            <input type="hidden" name="Lines[@i].ProductId" value="@product.Id" />
+                            <input name="Lines[@i].QtyBase" type="number" min="0" max="@product.AvailableBase" step="1" value="0" inputmode="numeric" aria-label="Jumlah @product.Name" style="max-width:150px;margin-left:auto" />
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table></div>
+            <p class="hint">Harga memakai harga jual satuan dasar produk. Produk tanpa harga tidak dapat dijual sampai harganya diatur di Produk &amp; foto produk.</p>
+            <button class="btn btn-lg" type="submit">Catat penyerahan ke agen</button>
+        </form>
+    }
+</div>
+
+<div class="section-title mt-2"><span>@UiIcons.Svg("history", 22)</span><h2>Riwayat penjualan</h2></div>
+<div class="card pad-0">
+    <div class="table-wrap"><table class="table table-stack hover">
+        <thead><tr><th>Transaksi</th><th>Agen</th><th>Barang</th><th class="right">Total</th><th>Status penerimaan</th></tr></thead>
+        <tbody>
+        @if (Model.Sales.Count == 0) { <tr><td colspan="5" class="muted">Belum ada penjualan ke agen.</td></tr> }
+        @foreach (var sale in Model.Sales)
+        {
+            var statusText = sale.Status == OrderStatus.PickedUp ? "Menunggu konfirmasi agen" : OrderLabels.Status(sale.Status);
+            <tr>
+                <td class="cell-title"><a class="name" asp-controller="Orders" asp-action="Detail" asp-route-id="@sale.Id">@sale.Number</a><span class="sub">@IdFormat.Stamp(sale.CreatedAt)</span></td>
+                <td data-label="Agen">@sale.BuyerName</td><td data-label="Barang" class="small">@sale.ItemsText</td>
+                <td class="right num" data-label="Total"><b>@Rupiah.Format(sale.TotalAmount)</b></td>
+                <td data-label="Status penerimaan"><span class="@OrderLabels.BadgeClass(sale.Status)">@statusText</span></td>
+            </tr>
+        }
+        </tbody>
+    </table></div>
+</div>

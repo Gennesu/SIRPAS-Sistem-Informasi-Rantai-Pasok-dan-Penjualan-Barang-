@@ -1,0 +1,19 @@
+@model Platform.Web.Modules.Consumers.ViewModels.ConsumerProfileViewModel
+@{
+    ViewData["Title"] = "Profil pembeli";
+}
+<div class="page-head"><div><h1>Profil pembeli</h1><p class="lead">Data ini dipakai pada pesanan Anda (nama, telepon, alamat antar). Hanya warung yang Anda pesan yang melihatnya.</p></div></div>
+<div class="card" style="max-width:640px">
+    <form asp-action="Profile" method="post" data-once>
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+        <div class="field"><label>Email (tidak dapat diubah)</label><input value="@Model.Email" disabled /></div>
+        <div class="field"><label asp-for="FullName"></label><input asp-for="FullName" /><span asp-validation-for="FullName" class="field-validation-error"></span></div>
+        <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" inputmode="tel" /><span asp-validation-for="Phone" class="field-validation-error"></span></div>
+        <div class="field"><label asp-for="Address"></label><input asp-for="Address" /><span asp-validation-for="Address" class="field-validation-error"></span></div>
+        <div class="grid grid-2">
+            <div class="field"><label asp-for="Latitude"></label><input asp-for="Latitude" inputmode="decimal" /><span asp-validation-for="Latitude" class="field-validation-error"></span></div>
+            <div class="field"><label asp-for="Longitude"></label><input asp-for="Longitude" inputmode="decimal" /><span asp-validation-for="Longitude" class="field-validation-error"></span></div>
+        </div>
+        <button class="btn" type="submit">Simpan profil</button>
+    </form>
+</div>

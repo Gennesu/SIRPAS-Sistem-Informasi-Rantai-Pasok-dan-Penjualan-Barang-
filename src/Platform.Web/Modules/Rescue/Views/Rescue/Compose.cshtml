@@ -1,0 +1,158 @@
+@model Platform.Web.Modules.Rescue.ViewModels.ComposeViewModel
+@using Platform.Web.Modules.Stock.Contracts
+@{
+    ViewData["Title"] = "Buat paket";
+    ViewData["Nav"] = "Rescue/Bundles";
+    var input = Model.Input;
+    Microsoft.AspNetCore.Html.IHtmlContent RenderItem(int i)
+    {
+        var o = Model.Batches[i];
+        var b = o.Batch;
+        var qty = input.Items[i].QtyBase;
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        return Html.Raw(
+            $"<div class=\"item-pick {(qty > 0 ? "on" : "")}\" data-item data-normal=\"{o.NormalPriceBase.ToString(inv)}\" data-cost=\"{b.UnitCost.ToString(inv)}\" data-days=\"{b.DaysLeft}\" data-remaining=\"{b.QtyBase}\" data-default=\"{o.DefaultQty}\">" +
+            $"<span class=\"daytag sm band-{b.Band.ToString().ToLowerInvariant()}\"><b>{b.DaysLeft}</b><span>hari</span></span>" +
+            $"<div><b>{System.Net.WebUtility.HtmlEncode(b.ProductName)}</b><div class=\"muted small\">Kadaluarsa {IdFormat.Date(b.ExpiryDate)} · sisa <b>{b.QtyBase} {System.Net.WebUtility.HtmlEncode(b.BaseUnitName)}</b> ({System.Net.WebUtility.HtmlEncode(b.QtyBreakdown)}) · normal {Rupiah.Format(o.NormalPriceBase)}/{System.Net.WebUtility.HtmlEncode(b.BaseUnitName)}</div></div>" +
+            $"<div class=\"qty-wrap\"><input type=\"hidden\" name=\"Items[{i}].BatchId\" value=\"{b.BatchId}\" />" +
+            $"<label class=\"small muted\" for=\"item-{i}\" style=\"display:block;font-weight:700\">Per paket ({System.Net.WebUtility.HtmlEncode(b.BaseUnitName)})</label>" +
+            $"<div class=\"qty sm\"><button type=\"button\" data-step=\"-1\" aria-label=\"Kurangi\">&minus;</button><input type=\"number\" id=\"item-{i}\" name=\"Items[{i}].QtyBase\" value=\"{qty}\" min=\"0\" max=\"{b.QtyBase}\" inputmode=\"numeric\" /><button type=\"button\" data-step=\"1\" aria-label=\"Tambah\">+</button></div>" +
+            $"<div class=\"hint\">{System.Net.WebUtility.HtmlEncode(o.PackHint)}</div></div></div>");
+    }
+}
+
+<div class="crumbs"><a asp-action="Index">Dashboard food waste</a> @UiIcons.Svg("chevron-right", 14) <span>Buat paket</span></div>
+<div class="page-head">
+    <div>
+        <h1>Buat paket anti-mubazir</h1>
+        <p class="lead">Pilih barang yang mendekati kadaluarsa, tentukan harga miring, lalu tawarkan ke warung yang paling laku menjualnya atau tayangkan di marketplace.</p>
+    </div>
+</div>
+
+@if (Model.Batches.Count == 0)
+{
+    <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("calendar", 30)</div><h3>Belum ada stok bertanggal kadaluarsa</h3><p>Paket dibuat dari batch yang punya tanggal kadaluarsa dan harga grosir. Catat stok masuk dengan tanggal kadaluarsa terlebih dahulu.</p><a class="btn" asp-controller="Purchases" asp-action="Create">Catat stok masuk</a></div></div>
+    return;
+}
+
+<form asp-action="Compose" method="post" id="compose-form" data-once data-today="@Model.Today.ToString("yyyy-MM-dd")">
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <div class="compose">
+        <div class="stack" style="--gap:18px">
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("package", 21) 1. Isi paket</h2><span class="muted small">Isi jumlah per paket; kosongkan (0) bila batch tidak ikut</span></div>
+                @{
+                    var near = Enumerable.Range(0, Model.Batches.Count).Where(ix => Model.Batches[ix].Batch.DaysLeft <= 60 || input.Items[ix].QtyBase > 0).ToList();
+                    var far = Enumerable.Range(0, Model.Batches.Count).Except(near).ToList();
+                }
+                <div class="stack" style="--gap:10px" id="item-list">
+                    @foreach (var i in near) { @RenderItem(i) }
+                </div>
+                @if (far.Count > 0)
+                {
+                    <details class="mt-2">
+                        <summary class="link-btn" style="cursor:pointer">Batch lain yang masih lama (@far.Count)</summary>
+                        <div class="stack mt-1" style="--gap:10px">
+                            @foreach (var i in far) { @RenderItem(i) }
+                        </div>
+                    </details>
+                }
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("percent", 21) 2. Harga &amp; masa berlaku</h2></div>
+                <div class="field">
+                    <label for="discount">Diskon dari harga normal: <b id="discount-label">@(input.DiscountPercent ?? 0)%</b></label>
+                    <input type="range" id="discount" name="DiscountPercent" min="5" max="80" step="5" value="@(input.DiscountPercent ?? 20)" />
+                    <div class="chips" id="discount-chips">
+                        @foreach (var d in new[] { 10, 20, 30, 40, 50 })
+                        {
+                            <button type="button" class="chip" data-discount="@d">@d%</button>
+                        }
+                    </div>
+                    <span class="hint" id="discount-hint">Saran diskon mengikuti sisa umur barang: makin dekat kadaluarsa makin besar.</span>
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="fixed-price">Atau tetapkan harga paket (Rp)</label>
+                        <div class="input-group"><span class="addon">Rp</span><input type="number" id="fixed-price" name="BundlePrice" min="0" step="100" inputmode="numeric" value="@input.BundlePrice" placeholder="otomatis dari diskon" /></div>
+                        <span class="hint">Bila diisi, harga ini dipakai dan diskon diabaikan.</span>
+                    </div>
+                    <div class="field">
+                        <label for="valid">Paket bisa dipesan sampai</label>
+                        <input type="date" id="valid" name="ValidUntil" value="@input.ValidUntil?.ToString("yyyy-MM-dd")" min="@Model.Today.ToString("yyyy-MM-dd")" />
+                        <span class="hint">Tidak boleh melewati tanggal kadaluarsa barang terdekat.</span>
+                    </div>
+                    <div class="field full"><label for="title">Nama paket (opsional)</label><input type="text" id="title" name="Title" maxlength="100" value="@input.Title" placeholder="Otomatis dari isi paket, mis. Susu UHT Cokelat, kadaluarsa 28 Okt" /></div>
+                    <div class="field full"><label for="desc">Deskripsi (opsional)</label><textarea id="desc" name="Description" maxlength="300" rows="2" placeholder="Mis. Dus masih segel, kadaluarsa jelas tertera di kemasan.">@input.Description</textarea></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("send", 21) 3. Kirim penawaran ke warung</h2></div>
+                @if (Model.Targets.Count == 0)
+                {
+                    <div class="alert alert-info">@UiIcons.Svg("info", 20)<div class="grow">
+                        @if (Model.FocusBatchId is null) { <text>Buka halaman ini dari tombol <b>Tawarkan</b> di dashboard untuk melihat warung yang cocok ditawari. </text> }
+                        else { <text>Belum ada warung langganan yang menjual <b>@Model.FocusProduct</b> dan membagikan data penjualannya. </text> }
+                        Tanpa penawaran, paket tayang publik di marketplace dan semua warung bisa memesannya.
+                    </div></div>
+                }
+                else
+                {
+                    <p class="muted small">Urut menurut kecepatan jual <b>@Model.FocusProduct</b> (30 hari). Jumlah paket disarankan agar warung sempat menjual sebelum kadaluarsa.</p>
+                    <div class="stack" style="--gap:8px">
+                        @for (var i = 0; i < Model.Targets.Count; i++)
+                        {
+                            var t = Model.Targets[i];
+                            var chosen = input.Targets[i];
+                            <div class="target" style="grid-template-columns:auto 38px minmax(0,1fr) auto">
+                                <input type="hidden" name="Targets[@i].BusinessId" value="@t.BusinessId" />
+                                <input type="checkbox" name="Targets[@i].Selected" value="true" data-target @(chosen.Selected ? "checked" : "") aria-label="Pilih @t.Name" /><input type="hidden" name="Targets[@i].Selected" value="false" />
+                                <span class="t-rank">@(i + 1)</span>
+                                <div>
+                                    <b>@t.Name</b>
+                                    <small>Terjual <b>@t.SoldQtyBase</b> (@t.AvgPerDay.ToString("0.0")/hari) · stok warung @t.StockAtWarungBase@(t.DistanceKm is double d ? $" · {d:0.0} km" : "") · saran @t.SuggestedQtyBase</small>
+                                </div>
+                                <div class="qty sm" title="Jumlah paket yang disarankan">
+                                    <button type="button" data-step="-1">&minus;</button>
+                                    <input type="number" name="Targets[@i].SuggestedBundles" value="@chosen.SuggestedBundles" min="1" max="10000" />
+                                    <button type="button" data-step="1">+</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="stack mt-2" style="--gap:8px">
+                        <label class="check"><input type="radio" name="PrivateToTargets" value="true" @(input.PrivateToTargets ? "checked" : "") /><span>Hanya untuk warung terpilih <small>Paket tidak tampil di marketplace. Cocok agar harga khusus tidak menyebar.</small></span></label>
+                        <label class="check"><input type="radio" name="PrivateToTargets" value="false" @(!input.PrivateToTargets ? "checked" : "") /><span>Tayang juga di marketplace <small>Warung lain ikut bisa memesan selama stok ada.</small></span></label>
+                    </div>
+                    <div class="field mt-2"><label for="msg">Pesan untuk warung (opsional)</label><input type="text" id="msg" name="Message" maxlength="200" value="@input.Message" placeholder="Mis. Susu cokelat paling laku di warung Anda, harga khusus." /></div>
+                }
+            </div>
+        </div>
+
+        <aside class="summary">
+            <div class="card">
+                <div class="card-head"><h2>Ringkasan paket</h2><span class="daytag sm band-watch" id="sum-tag"><b id="sum-days">–</b><span>hari</span></span></div>
+                <div class="muted small">Harga per paket</div>
+                <div class="sum-price" id="sum-price">Rp0</div>
+                <div class="row small" style="gap:8px"><span class="price-old" id="sum-normal">Rp0</span><span class="badge badge-danger" id="sum-off">-0%</span></div>
+                <hr class="divider-dash" />
+                <dl class="kv">
+                    <dt>Hemat warung</dt><dd id="sum-save">Rp0</dd>
+                    <dt>Isi paket</dt><dd id="sum-units">0 item</dd>
+                    <dt>Paket tersedia</dt><dd id="sum-avail">0</dd>
+                    <dt>Modal per paket</dt><dd id="sum-cost">Rp0</dd>
+                    <dt>Untung per paket</dt><dd id="sum-margin">Rp0</dd>
+                </dl>
+                <div class="alert alert-error mt-1 hide" id="sum-loss" style="margin-bottom:0">@UiIcons.Svg("triangle-alert", 18)<div class="grow">Harga di bawah modal. Anda rugi, tetapi bisa lebih baik daripada barang terbuang.</div></div>
+                <div class="alert alert-warn mt-1 hide" id="sum-empty" style="margin-bottom:0">@UiIcons.Svg("info", 18)<div class="grow">Pilih minimal satu barang dengan jumlah lebih dari 0.</div></div>
+                <button type="submit" class="btn btn-lg btn-block mt-2" id="submit-btn">@UiIcons.Svg("gift", 20) <span id="submit-label">Buat paket</span></button>
+            </div>
+        </aside>
+    </div>
+</form>
+
+@section Scripts {
+    <script src="~/js/compose.js" asp-append-version="true"></script>
+}

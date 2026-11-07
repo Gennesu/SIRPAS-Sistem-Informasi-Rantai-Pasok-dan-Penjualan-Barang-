@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" fill="none">
+  <g stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(22 20) rotate(-8 24 26)" stroke="#A98535" stroke-opacity=".3">
+      <path d="M4 18 24 8l20 10v25H4zM4 18h40M16 43V28h16v15M11 24h.01M37 24h.01" fill="#E4CA86" fill-opacity=".14"/>
+    </g>
+    <g transform="translate(238 35) rotate(10 25 25)" stroke="#648CA3" stroke-opacity=".3">
+      <path d="M3 12h27a4 4 0 0 1 4 4v18H3zM34 20h9l7 8v6H34z" fill="#A9C9D1" fill-opacity=".15"/>
+      <path d="M39 21v7h9M3 28h31"/><circle cx="13" cy="37" r="4" fill="#E2B36C" fill-opacity=".22"/><circle cx="41" cy="37" r="4" fill="#E2B36C" fill-opacity=".22"/>
+    </g>
+    <g transform="translate(86 158) rotate(13 22 25)" stroke="#C47A55" stroke-opacity=".3">
+      <path d="M4 12 22 4l18 8v25l-18 8-18-8zM4 12l18 9 18-9M22 21v24M13 8l18 9" fill="#E7B390" fill-opacity=".15"/>
+    </g>
+    <g transform="translate(270 212) rotate(-12 22 25)" stroke="#718A61" stroke-opacity=".3">
+      <path d="M4 12 22 4l18 8v25l-18 8-18-8zM4 12l18 9 18-9M22 21v24M13 8l18 9" fill="#B7C89A" fill-opacity=".15"/>
+      <path d="M11 31h8m6 0h8"/>
+    </g>
+    <g transform="translate(23 282) rotate(9 22 22) scale(.8)" stroke="#A98535" stroke-opacity=".26">
+      <path d="M4 18 24 8l20 10v25H4zM4 18h40M13 24h8m6 0h8M13 31h8m6 0h8" fill="#E4CA86" fill-opacity=".12"/>
+    </g>
+    <g transform="translate(177 102) rotate(-17 15 14)" stroke="#648CA3" stroke-opacity=".28">
+      <path d="M4 9 18 3l14 6v19l-14 6L4 28zM4 9l14 7 14-7M18 16v18"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,126 @@
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Orders.Domain
+@using Platform.Web.Modules.Consumers.Domain
+@using Platform.Web.Modules.Delivery.Contracts
+@model Platform.Web.Modules.Consumers.Contracts.ConsumerOrderDetailDto
+@{
+    var isSeller = (bool)(ViewData["IsSeller"] ?? false);
+    ViewData["Title"] = "Pesanan " + Model.Number;
+    ViewData["Nav"] = "ConsumerOrders/Index";
+    var failed = Model.Status is OrderStatus.Rejected or OrderStatus.Cancelled;
+    var done = Model.Status == OrderStatus.Completed;
+    string Icon(string key) => key switch
+    {
+        "Pending" => "clock", "Accepted" => "check", "Preparing" => "package-open", "Ready" => "package-check",
+        "Delivered" => "truck", "PickedUp" => "hand-coins", "Completed" => "circle-check", _ => "circle-x"
+    };
+    var payKey = Guid.NewGuid().ToString("N");
+}
+<div class="crumbs"><a asp-action="Index">@(isSeller ? "Pesanan pembeli" : "Pesanan saya")</a> @UiIcons.Svg("chevron-right", 14) <span>@Model.Number</span></div>
+<div class="page-head"><div>
+    <div class="status-line"><h1>Pesanan @Model.Number</h1><span class="@OrderLabels.BadgeClass(Model.Status)">@OrderLabels.Status(Model.Status)</span></div>
+    <p class="lead">@(isSeller ? Model.ConsumerName : Model.SellerName) &middot; dibuat @IdFormat.StampWithYear(Model.CreatedAt) WIB</p></div></div>
+
+<div class="card"><ol class="phases" aria-label="Fase pesanan">
+    @foreach (var s in Model.Steps)
+    {
+        <li class="@s.State.ToString().ToLowerInvariant()"><span class="p-dot">@UiIcons.Svg(s.State == TrackingState.Failed ? "circle-x" : Icon(s.Key), 19)</span><span>@s.Title</span></li>
+    }
+</ol></div>
+
+@if (failed)
+{
+    <div class="alert alert-error mt-2">@UiIcons.Svg("triangle-alert", 20)<div class="grow">@(string.IsNullOrEmpty(Model.RejectReason) ? "Pesanan tidak dilanjutkan." : "Alasan: " + Model.RejectReason)</div></div>
+}
+@if (Model.Savings > 0)
+{
+    <div class="alert alert-ok mt-2">@UiIcons.Svg("heart-handshake", 20)<div class="grow">Pesanan ini memakai <b>promo produk hampir kedaluwarsa</b>: hemat <b>@Rupiah.Format(Model.Savings)</b>.</div></div>
+}
+
+<div class="split mt-2">
+    <div class="stack" style="--gap:18px">
+        <div class="card"><div class="card-head"><h2>@UiIcons.Svg("package", 21) Barang</h2></div>
+            <div class="table-wrap"><table class="table table-stack">
+                <thead><tr><th>Produk</th><th class="right">Jumlah</th><th class="right">Harga</th><th class="right">Subtotal</th></tr></thead>
+                <tbody>
+                @foreach (var i in Model.Items)
+                {
+                    <tr>
+                        <td data-label="Produk" class="cell-title">
+                            <div class="pcell">
+                                <partial name="_ProductThumb" model="new ProductThumbModel(i.ImagePath, i.ProductName, 52)" />
+                                <div class="grow"><b>@i.ProductName</b>@if (i.IsPromo) { <div class="small"><span class="badge badge-warn">promo -@i.PromoPercent%</span> kedaluwarsa @(i.ExpiryDate is DateOnly e ? WibTime.Format(e) : "-")</div> }</div>
+                            </div>
+                        </td>
+                        <td data-label="Jumlah" class="right num">@i.QtyBase @i.BaseUnitName</td>
+                        <td data-label="Harga" class="right num">@Rupiah.Format(i.UnitPrice)</td>
+                        <td data-label="Subtotal" class="right num">@Rupiah.Format(i.Subtotal)</td>
+                    </tr>
+                }
+                </tbody>
+            </table></div>
+        </div>
+
+        <div class="card"><div class="card-head"><h2>@UiIcons.Svg("hand-coins", 21) Pembayaran</h2><span class="badge badge-info">SIMULASI / DEMO</span></div>
+            <p class="muted small">Tidak ada uang nyata yang diproses dan tidak ada transaksi bank. Status pembayaran dipisahkan dari status pesanan.</p>
+            <dl class="kv">
+                <dt>Metode</dt><dd>@(Model.PaymentMethod switch { PaymentMethod.CashOnPickup => "Bayar saat ambil (tunai)", PaymentMethod.CashOnDelivery => "Bayar saat diterima (tunai)", _ => "Simulasi pembayaran lokal" })</dd>
+                <dt>Status pembayaran</dt><dd>@(Model.PaymentStatus switch { OrderPaymentStatus.Paid => "Lunas", OrderPaymentStatus.Pending => "Menunggu pembayaran", OrderPaymentStatus.Failed => "Gagal (dapat dicoba lagi)", OrderPaymentStatus.Cancelled => "Dibatalkan", OrderPaymentStatus.Refunded => "Dikembalikan (simulasi)", _ => "Belum dibayar (tunai saat terima)" })</dd>
+            </dl>
+            @if (Model.Payments.Count > 0)
+            {
+                <div class="table-wrap"><table class="table"><thead><tr><th>Referensi</th><th>Status</th><th class="right">Jumlah</th></tr></thead><tbody>
+                @foreach (var p in Model.Payments)
+                {
+                    <tr><td><code>@p.Reference</code></td><td>@p.Status@(p.FailureReason is { Length: > 0 } ? " - " + p.FailureReason : "")</td><td class="right num">@Rupiah.Format(p.Amount)</td></tr>
+                }
+                </tbody></table></div>
+            }
+            @if (Model.CanPayDemo)
+            {
+                <form asp-action="Pay" method="post" class="row mt-1" style="gap:10px;flex-wrap:wrap">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" name="key" value="@payKey" />
+                    <button class="btn" type="submit" name="simulateFailure" value="false" data-once-btn>@UiIcons.Svg("hand-coins", 18) Bayar (simulasi)</button>
+                    <button class="btn btn-secondary" type="submit" name="simulateFailure" value="true">Simulasikan gagal</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <div class="stack" style="--gap:18px">
+        <div class="card"><dl class="kv">
+            <dt>Cara terima</dt><dd>@OrderLabels.Fulfillment(Model.Fulfillment)</dd>
+            @if (Model.DeliveryAddress is { Length: > 0 }) { <dt>Alamat antar</dt><dd>@Model.DeliveryAddress</dd> }
+            <dt>@(isSeller ? "Pembeli" : "Warung")</dt><dd>@(isSeller ? Model.ConsumerName + (Model.ConsumerPhone is { Length: > 0 } ? " (" + Model.ConsumerPhone + ")" : "") : Model.SellerName + " - " + Model.SellerAddress)</dd>
+            @if (Model.Note is { Length: > 0 }) { <dt>Catatan</dt><dd>@Model.Note</dd> }
+            <dt>Subtotal</dt><dd>@Rupiah.Format(Model.Subtotal)</dd>
+            <dt>Ongkir</dt><dd>@Rupiah.Format(Model.DeliveryFee)</dd>
+            <dt><b>Total</b></dt><dd><b>@Rupiah.Format(Model.TotalAmount)</b></dd>
+        </dl></div>
+
+        @if (Model.Actions.Count > 0)
+        {
+            <div class="card"><div class="card-head"><h2>Tindakan</h2></div>
+                <form asp-action="Act" method="post" data-once>
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    @if (Model.Actions.Any(a => a is OrderAction.Reject or OrderAction.SellerCancel))
+                    {
+                        <div class="field"><label for="reason">Alasan (wajib untuk menolak/membatalkan)</label><input id="reason" name="reason" maxlength="200" /></div>
+                    }
+                    <div class="row" style="gap:10px;flex-wrap:wrap">
+                    @foreach (var a in Model.Actions)
+                    {
+                        var danger = a is OrderAction.Reject or OrderAction.SellerCancel or OrderAction.BuyerCancel;
+                        <button type="submit" name="action" value="@a" class="btn @(danger ? "btn-danger" : "")" @(danger ? "data-confirm=\"Lanjutkan?\" data-confirm-danger" : "")>@OrderLabels.Action(a, Model.Fulfillment)</button>
+                    }
+                    </div>
+                </form>
+            </div>
+        }
+        else if (isSeller && Model.PaymentMethod == PaymentMethod.DemoSimulation && Model.PaymentStatus != OrderPaymentStatus.Paid && Model.Status is OrderStatus.Ready)
+        {
+            <div class="alert alert-info">@UiIcons.Svg("info", 20)<div class="grow">Menunggu pembeli menyelesaikan pembayaran simulasi sebelum barang diserahkan.</div></div>
+        }
+    </div>
+</div>

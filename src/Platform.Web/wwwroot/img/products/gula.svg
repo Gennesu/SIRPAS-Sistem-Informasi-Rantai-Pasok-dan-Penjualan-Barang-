@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Gula pasir 1 kg">
+<title>Gula pasir 1 kg</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9f3fd"/><stop offset="1" stop-color="#cfe4f7"/></linearGradient>
+<linearGradient id="sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<rect width="320" height="200" fill="url(#bg)"/>
+<circle cx="270" cy="36" r="46" fill="#fff" opacity=".3"/>
+<circle cx="48" cy="170" r="36" fill="#fff" opacity=".22"/>
+<ellipse cx="160" cy="181" rx="78" ry="8" fill="#000" opacity=".13"/>
+<rect x="112" y="46" width="96" height="130" rx="6" fill="#ffffff"/>
+<polygon points="112,46 208,46 200,66 120,66" fill="#e8eef6"/>
+<rect x="112" y="104" width="96" height="32" fill="#1c7ed6"/>
+<rect x="112" y="46" width="96" height="130" rx="6" fill="url(#sh)"/>
+<text x="160" y="94" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="20" fill="#1c7ed6" >GULA</text><text x="160" y="126" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="14" fill="#ffffff" >PASIR</text><text x="160" y="158" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="12" fill="#1c7ed6" >1 KG</text>
+<circle cx="132" cy="80" r="2" fill="#b3cde8"/><circle cx="188" cy="84" r="2" fill="#b3cde8"/><circle cx="178" cy="72" r="2" fill="#b3cde8"/>
+</svg>

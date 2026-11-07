@@ -1,0 +1,63 @@
+@using Platform.Web.Modules.Consumers.Domain
+@using Platform.Web.Modules.Delivery.Contracts
+@model Platform.Web.Modules.Consumers.Contracts.ShopDetailDto
+@{
+    ViewData["Title"] = Model.Card.Name;
+    ViewData["Nav"] = "Shop/Index";
+    var card = Model.Card;
+}
+<div class="crumbs"><a asp-action="Index">Belanja di warung</a> @UiIcons.Svg("chevron-right", 14) <span>@card.Name</span></div>
+<div class="page-head"><div><h1>@card.Name</h1><p class="lead">@card.Address</p></div></div>
+
+<form asp-action="Review" method="post" data-once>
+    <input type="hidden" name="SellerBusinessId" value="@card.BusinessId" />
+    <div class="split">
+        <div class="card pad-0">
+            <div class="table-wrap"><table class="table table-stack hover">
+                <thead><tr><th>Produk</th><th class="right">Harga</th><th class="right">Tersedia</th><th class="right">Jumlah</th></tr></thead>
+                <tbody>
+                @foreach (var p in Model.Products)
+                {
+                    <tr>
+                        <td data-label="Produk" class="cell-title">
+                            <div class="pcell">
+                                <partial name="_ProductThumb" model="new ProductThumbModel(p.ImagePath, p.Name, 60)" />
+                                <div class="grow"><b>@p.Name</b> <span class="muted small">@p.CategoryName</span>
+                                    @if (p.PromoQty > 0) { <div class="small"><span class="badge badge-warn">-@p.PromoPercent%</span> @p.PromoQty @p.BaseUnitName: @Rupiah.Format(p.PromoUnitPrice) / @p.BaseUnitName (kedaluwarsa terdekat @(p.NearestExpiry is DateOnly e ? WibTime.Format(e) : "-"))</div> }
+                                    else if (p.NearestExpiry is DateOnly e2 && p.DaysToExpiry is int d && d <= 30) { <div class="small muted">Kedaluwarsa terdekat @WibTime.Format(e2) (@d hari lagi)</div> }
+                                </div>
+                            </div>
+                        </td>
+                        <td data-label="Harga" class="right num">@Rupiah.Format(p.UnitPrice) / @p.BaseUnitName</td>
+                        <td data-label="Tersedia" class="right num">@p.AvailableQty @p.BaseUnitName</td>
+                        <td data-label="Jumlah" class="right"><input type="number" min="0" max="@p.AvailableQty" value="0" name="Qty[@p.ProductId]" inputmode="numeric" style="width:90px" aria-label="Jumlah @p.Name" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table></div>
+        </div>
+        <div class="stack" style="--gap:16px">
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("truck", 21) Cara terima</h2></div>
+                <label class="check"><input type="radio" name="Fulfillment" value="@FulfillmentType.Pickup" checked @(card.OffersPickup ? "" : "disabled") /> Ambil sendiri di warung @(Model.PickupInfo is { Length: > 0 } ? "(" + Model.PickupInfo + ")" : "")</label>
+                @if (card.OffersDelivery)
+                {
+                    <label class="check mt-1"><input type="radio" name="Fulfillment" value="@FulfillmentType.Delivery" @(card.DeliveryAvailable ? "" : "disabled") /> Diantar &mdash; @(card.DeliveryAvailable ? Rupiah.Format(card.DeliveryFee) : (card.DeliveryNote ?? "di luar jangkauan"))</label>
+                    <div class="field mt-1"><label for="addr">Alamat antar</label><input id="addr" name="DeliveryAddress" value="@Model.ConsumerAddress" maxlength="300" /></div>
+                }
+                else { <p class="muted small mt-1">Warung ini tidak menyediakan pengantaran.</p> }
+            </div>
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("hand-coins", 21) Pembayaran</h2></div>
+                <label class="check"><input type="radio" name="PaymentMethod" value="@PaymentMethod.CashOnPickup" checked /> Bayar saat ambil (tunai)</label>
+                <label class="check mt-1"><input type="radio" name="PaymentMethod" value="@PaymentMethod.CashOnDelivery" /> Bayar saat diterima (tunai, untuk antar)</label>
+                <label class="check mt-1"><input type="radio" name="PaymentMethod" value="@PaymentMethod.DemoSimulation" /> Simulasi pembayaran lokal</label>
+                <p class="muted small mt-1">@UiIcons.Svg("info", 14) Semua cara bayar hanya <b>demo</b>: tidak ada uang nyata, tidak ada transfer bank.</p>
+            </div>
+            <div class="card">
+                <div class="field mb-0"><label for="note">Catatan (opsional)</label><input id="note" name="Note" maxlength="200" /></div>
+                <button class="btn btn-lg btn-block mt-2" type="submit">Tinjau pesanan</button>
+            </div>
+        </div>
+    </div>
+</form>

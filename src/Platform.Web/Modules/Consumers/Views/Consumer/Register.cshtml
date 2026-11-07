@@ -1,0 +1,45 @@
+@model Platform.Web.Modules.Consumers.ViewModels.RegisterConsumerViewModel
+@{
+    ViewData["Title"] = "Daftar sebagai pembeli";
+    ViewData["Bare"] = true;
+}
+
+<div class="auth">
+    <section class="auth-hero"><div class="auth-hero-inner">
+        <a class="brand" asp-controller="Home" asp-action="Index">
+            <span class="brand-mark">@UiIcons.Svg("leaf", 22)</span>
+            <span>SIRPAS<small>Sistem Informasi Rantai Pasok</small></span>
+        </a>
+        <div style="position:relative;z-index:2">
+            <h1>Belanja di warung dekat Anda, <em>hemat dan layak konsumsi.</em></h1>
+            <p class="lead">Akun pembeli untuk individu: tidak perlu mendaftarkan usaha. Lihat stok warung, ambil sendiri atau diantar, dan manfaatkan promo produk yang masih layak konsumsi.</p>
+            <ul class="auth-points">
+                <li><span class="ap-ico">@UiIcons.Svg("store", 21)</span><span><b>Stok nyata</b><span>Hanya barang yang tersedia dan belum kedaluwarsa yang ditampilkan.</span></span></li>
+                <li><span class="ap-ico">@UiIcons.Svg("badge-percent", 21)</span><span><b>Promo hampir kedaluwarsa</b><span>Diskon untuk produk yang masih layak konsumsi; tanggal kedaluwarsa ditampilkan jelas.</span></span></li>
+                <li><span class="ap-ico">@UiIcons.Svg("shield-check", 21)</span><span><b>Pembayaran demo</b><span>Bayar saat ambil/diterima, atau simulasi lokal. Tidak ada uang nyata yang diproses.</span></span></li>
+            </ul>
+        </div>
+    </div></section>
+
+    <section class="auth-panel" style="align-items:start">
+        <div class="auth-card" style="width:min(560px,100%)">
+            <h2>Daftar sebagai pembeli</h2>
+            <p class="muted">Pengguna usaha? <a asp-controller="Business" asp-action="Register"><b>Daftarkan usaha</b></a></p>
+            <form asp-action="Register" method="post" data-once>
+                <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+                <div class="field"><label asp-for="FullName"></label><input asp-for="FullName" autocomplete="name" /><span asp-validation-for="FullName" class="field-validation-error"></span></div>
+                <div class="field"><label asp-for="Email"></label><input asp-for="Email" type="email" autocomplete="email" /><span asp-validation-for="Email" class="field-validation-error"></span></div>
+                <div class="field"><label asp-for="Password"></label><input asp-for="Password" type="password" autocomplete="new-password" /><span asp-validation-for="Password" class="field-validation-error"></span></div>
+                <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" inputmode="tel" placeholder="08xxxxxxxxxx" /><span asp-validation-for="Phone" class="field-validation-error"></span></div>
+                <div class="field"><label asp-for="Address"></label><input asp-for="Address" autocomplete="street-address" /><span asp-validation-for="Address" class="field-validation-error"></span></div>
+                <div class="grid grid-2">
+                    <div class="field"><label asp-for="Latitude"></label><input asp-for="Latitude" inputmode="decimal" placeholder="-6.9175" /><span asp-validation-for="Latitude" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="Longitude"></label><input asp-for="Longitude" inputmode="decimal" placeholder="107.6191" /><span asp-validation-for="Longitude" class="field-validation-error"></span></div>
+                </div>
+                <p class="muted small">Koordinat dipakai untuk jarak dan ongkir antar. Kosongkan bila belum tahu; Anda tetap dapat membeli dengan ambil sendiri.</p>
+                <button type="submit" class="btn btn-lg btn-block">Buat akun pembeli</button>
+            </form>
+            <p class="muted mt-2">Sudah punya akun? <a asp-controller="Account" asp-action="Login"><b>Masuk</b></a></p>
+        </div>
+    </section>
+</div>

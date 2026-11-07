@@ -1,0 +1,20 @@
+@model Platform.Web.SharedKernel.ProductThumbModel
+@* Gambar produk bersudut membulat; tanpa gambar -> kotak berinisial dengan warna tetap per nama produk. Ukuran (px) lewat Model.Size. *@
+@{
+    var hasImage = !string.IsNullOrWhiteSpace(Model.ImagePath);
+    var name = Model.Name ?? string.Empty;
+    var initial = string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[..1].ToUpperInvariant();
+    var hash = 17;
+    foreach (var ch in name) { hash = unchecked(hash * 31 + ch); }
+    var tone = (int)((uint)hash % 6u);
+}
+<span class="pthumb @(hasImage ? "" : "ph t" + tone)" style="--s:@(Model.Size)px">
+    @if (hasImage)
+    {
+        <img src="@Model.ImagePath" alt="@name" loading="lazy" width="@Model.Size" height="@Model.Size" />
+    }
+    else
+    {
+        <b aria-hidden="true">@initial</b>
+    }
+</span>

@@ -1,0 +1,13 @@
+[V2 POS 10 stok, 2x7, 20 percobaan] keduanya sukses=0, satu sukses=20, tak satupun=0; stok minus=0; stok tidak cocok dgn penjualan=0
+   pesan error pihak yang kalah: Stok Susu tidak cukup (tersisa 3).
+[V2 StockOut langsung, stok 10, 2x7, 20 percobaan] keduanya sukses=20, satu sukses=0; saldo Inventory != jumlah movement=20
+[V2 kunci idempotensi POS sama, bersamaan, 15 percobaan] kedua respons sukses (struk sama)=0, salah satu menerima ERROR=15
+   pesan error: Transaksi tidak dapat disimpan saat ini. Stok tidak berubah. Silakan coba lagi.
+[V2 pembelian manual dikirim 2x] stok akhir = 264 (benar bila hanya 1 pembelian: 252; 2 pembelian: 264)
+[V2 checkout dikirim 2x] id pesanan: 1 dan 2 => DUA pesanan dibuat
+[V2 ConfirmReceived serentak 2x] hasil1=OK, hasil2=OK; stok warung=24 (benar=12), jumlah pembelian dari pesanan=2 (benar=1)
+PASS  Platform.Tests.Probe.V2Probe.Probe_V2_kunci_idempotensi_sama_bersamaan  [5413 ms]
+PASS  Platform.Tests.Probe.V2Probe.Probe_V2_pembelian_dan_pesanan_tanpa_idempotensi_dan_terima_ganda  [1025 ms]
+PASS  Platform.Tests.Probe.V2Probe.Probe_V2_pos_race_stok10_dua_penjualan_7  [11046 ms]
+PASS  Platform.Tests.Probe.V2Probe.Probe_V2_stockout_standalone_race  [7259 ms]
+Total: 4  Lulus: 4  Gagal: 0  Waktu: 24.9s  Mode: berurutan

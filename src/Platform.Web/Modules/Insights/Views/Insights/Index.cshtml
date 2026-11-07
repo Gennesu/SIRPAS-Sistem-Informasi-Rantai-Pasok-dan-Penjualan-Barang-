@@ -1,0 +1,80 @@
+@model Platform.Web.Modules.Insights.Controllers.InsightsViewModel
+@using Platform.Web.Modules.Stock.Contracts
+@inject IExpiryService Expiry
+@{
+    ViewData["Title"] = "Penjualan warung";
+    var batches = await Expiry.GetBatchesAsync(30, false);
+    var max = Model.Products.Count == 0 ? 1 : Math.Max(1, Model.Products.Max(p => p.Warungs.Count == 0 ? 0 : p.Warungs.Max(w => w.SoldQtyBase)));
+}
+
+<div class="page-head">
+    <div>
+        <h1>Penjualan warung</h1>
+        <p class="lead">Produk Anda yang paling laku di warung langganan. Dipakai untuk memutuskan siapa yang ditawari barang hampir kadaluarsa.</p>
+    </div>
+    <div class="chips">
+        @foreach (var d in new[] { 7, 14, 30, 90 })
+        {
+            <a class="chip @(Model.Days == d ? "active" : "")" asp-action="Index" asp-route-days="@d">@d hari</a>
+        }
+    </div>
+</div>
+
+<div class="alert alert-info">@UiIcons.Svg("shield-check", 20)<div class="grow">Data ini hanya ringkasan <b>jumlah terjual</b> dari warung yang pernah memesan ke Anda dan mengizinkan berbagi data. Struk, harga jual, dan keuntungan warung tidak terlihat.@(Model.HiddenCustomers > 0 ? $" {Model.HiddenCustomers} warung langganan memilih tidak membagikan data." : "")</div></div>
+
+@if (Model.Products.Count == 0)
+{
+    <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("chart-column", 30)</div><h3>Belum ada data penjualan</h3><p>Data muncul setelah warung langganan yang membagikan data menjual barang dari Anda lewat kasir mereka.</p></div></div>
+}
+
+<div class="stack" style="--gap:18px">
+@foreach (var p in Model.Products.Where(x => x.TotalSoldBase > 0))
+{
+    var top = p.Warungs.Where(w => w.SoldQtyBase > 0).Take(2).ToList();
+    var productBatches = batches.Where(b => b.ProductId == p.ProductId).OrderBy(b => b.DaysLeft).ToList();
+    // Batch yang paling cocok ditawarkan: yang masih sempat terjual oleh warung terlaris sebelum kadaluarsa.
+    var atRisk = productBatches.FirstOrDefault(b => top.Count > 0 && (int)Math.Floor(top[0].AvgPerDay * Math.Max(b.DaysLeft - 3, 1)) - top[0].StockAtWarungBase > 0)
+                 ?? productBatches.FirstOrDefault();
+    <section class="card">
+        <div class="card-head">
+            <div>
+                <h2>@UiIcons.Svg("package", 21) @p.ProductName</h2>
+                <div class="muted small">Terjual <b>@Rupiah.Number(p.TotalSoldBase, 0) @p.BaseUnitName</b> di @p.WarungCount warung · stok gudang @Rupiah.Number(p.MyStockBase, 0)</div>
+            </div>
+            @if (atRisk is not null && top.Count > 0)
+            {
+                <a class="btn btn-sm btn-tag" asp-controller="Rescue" asp-action="Compose" asp-route-batchId="@atRisk.BatchId" asp-route-to="@top[0].BusinessId">@UiIcons.Svg("send", 16) Tawarkan stok @atRisk.DaysLeft hari lagi</a>
+            }
+        </div>
+        @if (atRisk is not null)
+        {
+            <div class="alert alert-tag">@UiIcons.Svg("clock", 18)<div class="grow">Ada <b>@atRisk.QtyBase @atRisk.BaseUnitName</b> yang kadaluarsa <b>@ExpiryBands.DaysText(atRisk.DaysLeft).ToLowerInvariant()</b>.@(top.Count > 0 ? $" Warung terlaris untuk produk ini: {string.Join(" lalu ", top.Select(t => t.Name))}." : "")</div></div>
+        }
+        <div class="table-wrap">
+            <table class="table table-stack">
+                <thead><tr><th>Warung</th><th style="min-width:200px">Terjual (@Model.Days hari)</th><th class="right">Per hari</th><th class="right">Stok di warung</th><th class="right">Cukup untuk</th><th class="right">Jarak</th></tr></thead>
+                <tbody>
+                @foreach (var w in p.Warungs)
+                {
+                    <tr>
+                        <td class="cell-title"><span class="name">@w.Name</span><span class="sub">Terakhir memesan @(w.LastOrderAt is DateTime lo ? IdFormat.Stamp(lo) : "—")</span></td>
+                        <td data-label="Terjual">
+                            <div class="row" style="gap:10px;flex-wrap:nowrap"><b class="num" style="min-width:2.5rem">@w.SoldQtyBase</b><div class="bar grow"><i style="width:@(w.SoldQtyBase * 100 / max)%"></i></div></div>
+                        </td>
+                        <td class="right num" data-label="Per hari">@w.AvgPerDay.ToString("0.0")</td>
+                        <td class="right num" data-label="Stok di warung">@w.StockAtWarungBase</td>
+                        <td class="right" data-label="Cukup untuk">@(w.DaysOfCover is double c ? Html.Raw($"<span class=\"badge {(c < 7 ? "badge-warn" : "badge-muted")}\">{c:0} hari</span>") : Html.Raw("<span class=\"muted\">—</span>"))</td>
+                        <td class="right num" data-label="Jarak">@(w.DistanceKm is double dk ? dk.ToString("0.0") + " km" : "—")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+</div>
+
+@if (Model.Products.Any(x => x.TotalSoldBase == 0))
+{
+    <p class="muted small mt-2">@Model.Products.Count(x => x.TotalSoldBase == 0) produk lain belum terjual di warung langganan pada periode ini.</p>
+}

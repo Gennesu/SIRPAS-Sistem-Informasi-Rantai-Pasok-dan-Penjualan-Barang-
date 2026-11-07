@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" fill="none">
+  <g stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(21 20) rotate(-7 22 22)" stroke="#B45F39" stroke-opacity=".29">
+      <path d="M5 16 9 5h30l4 11M8 16v25h32V16"/>
+      <path d="M5 16c0 5 7 5 7 0 0 5 7 5 7 0 0 5 7 5 7 0 0 5 7 5 7 0 0 5 7 5 7 0" fill="#EDC38F" fill-opacity=".17"/>
+      <path d="M15 28h9v13m7-13h5v7h-5z"/>
+    </g>
+    <g transform="translate(241 36) rotate(12 22 22)" stroke="#6F8D61" stroke-opacity=".3">
+      <path d="M5 16h38l-4 23H9zM10 16l8-12m20 12L30 4m-9 12-1-12m8 12 1-12"/>
+      <path d="M14 29h20M21 29v10m7-10v10"/>
+      <circle cx="16" cy="13" r="4" fill="#E2A75F" fill-opacity=".24" stroke="#C78A42"/>
+      <circle cx="34" cy="13" r="4" fill="#D67D62" fill-opacity=".2" stroke="#B9614B"/>
+    </g>
+    <g transform="translate(72 173) rotate(9 22 22)" stroke="#6E98A1" stroke-opacity=".29">
+      <path d="M12 6h24l-2 8 5 5v23H9V19l5-5zM14 14h20M10 25h30" fill="#B5D3CF" fill-opacity=".15"/>
+      <path d="M19 31h12v11H19zM18 6V2h12v4"/>
+      <path d="M20 19c1-4 4-6 8-7m-8 7c-4-1-6-4-6-7" stroke="#728D5D"/>
+    </g>
+    <g transform="translate(268 210) rotate(-11 22 22)" stroke="#C18D3E" stroke-opacity=".3">
+      <path d="M4 12 22 4l18 8v25l-18 8-18-8zM4 12l18 9 18-9M22 21v24M13 8l18 9" fill="#F2D792" fill-opacity=".15"/>
+    </g>
+    <g transform="translate(20 287) rotate(8 17 17) scale(.78)" stroke="#B45F39" stroke-opacity=".26">
+      <path d="M9 4h23v38l-5-4-6 4-6-4-6 4zM15 14h12m-12 7h12m-12 7h8" fill="#EDC38F" fill-opacity=".12"/>
+    </g>
+    <g transform="translate(181 112) rotate(-18 12 12)" stroke="#728D5D" stroke-opacity=".28">
+      <path d="M5 22c0-9 7-16 17-17-1 10-8 17-17 17Zm0 0c2-7 7-12 14-15M7 25c4 0 8 2 10 6"/>
+    </g>
+  </g>
+</svg>

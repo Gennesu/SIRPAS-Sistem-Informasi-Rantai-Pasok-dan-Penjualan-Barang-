@@ -1,0 +1,165 @@
+@model IReadOnlyList<Platform.Web.Modules.Catalog.Contracts.ProductDto>
+@{
+    ViewData["Title"] = "Produk";
+    var query = ViewData["Query"] as string;
+    var showInactive = ViewData["ShowInactive"] is true;
+    var wholesale = ViewData["Wholesale"] is true;
+}
+
+<div class="page-head">
+    <div>
+        <h1>@(wholesale ? "Produk & harga" : "Produk")</h1>
+        <p class="lead">
+            @(wholesale
+                ? "Katalog yang dilihat warung di marketplace. Isi harga grosir per kemasan agar produk bisa dipesan dan dijadikan paket anti-mubazir."
+                : "Daftar barang yang Anda jual. Stok dan harga jual diatur di menu Stok.")
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <a class="btn" asp-controller="Products" asp-action="Create">
+            @UiIcons.Svg("plus", 18) Tambah produk
+        </a>
+    </div>
+</div>
+
+<form method="get" asp-controller="Products" asp-action="Index" class="filter">
+    <div class="search-box" style="min-width:min(100%,340px)">
+        @UiIcons.Svg("search", 18)
+        <input type="search"
+               name="q"
+               value="@query"
+               placeholder="Cari nama atau SKU"
+               aria-label="Cari produk" />
+    </div>
+
+    <label class="check">
+        <input type="checkbox"
+               name="inactive"
+               value="true"
+               checked="@showInactive" />
+        Tampilkan nonaktif
+    </label>
+
+    <button type="submit" class="btn btn-secondary">Cari</button>
+</form>
+
+<div class="card pad-0">
+    <div class="table-wrap">
+        <table class="table table-stack hover">
+            <thead>
+                <tr>
+                    <th>Produk</th>
+                    <th>Kategori</th>
+                    <th>Satuan &amp; kemasan</th>
+                    @if (wholesale)
+                    {
+                        <th>Harga grosir</th>
+                    }
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td class="cell-title">
+                            <div class="pcell">
+                                <partial name="_ProductThumb" model="new ProductThumbModel(p.ImagePath, p.Name, 48)" />
+                                <div class="grow">
+                                    <span class="name">@p.Name</span>
+                                    @if (!string.IsNullOrEmpty(p.Sku))
+                                    {
+                                        <span class="sub">SKU @p.Sku</span>
+                                    }
+                                </div>
+                            </div>
+                        </td>
+
+                        <td data-label="Kategori">@p.CategoryName</td>
+
+                        <td data-label="Satuan">
+                            <b>@p.BaseUnitName</b>
+                            @foreach (var u in p.Units.Where(x => !x.IsBase))
+                            {
+                                <span class="sub">
+                                    1 @u.UnitName = @u.ConversionToBase @p.BaseUnitName
+                                </span>
+                            }
+                        </td>
+
+                        @if (wholesale)
+                        {
+                            <td data-label="Harga grosir">
+                                @foreach (var u in p.Units.Where(x => x.WholesalePrice.HasValue))
+                                {
+                                    <span class="sub" style="color:var(--ink)">
+                                        @u.UnitName:
+                                        <b>@Rupiah.Format(u.WholesalePrice!.Value)</b>
+                                    </span>
+                                }
+
+                                @if (!p.Units.Any(x => x.WholesalePrice.HasValue))
+                                {
+                                    <span class="badge badge-warn">Belum ada harga</span>
+                                }
+                            </td>
+                        }
+
+                        <td data-label="Status">
+                            @if (p.IsActive)
+                            {
+                                <span class="badge badge-ok">Aktif</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-muted">Nonaktif</span>
+                            }
+                        </td>
+
+                        <td class="right cell-actions">
+                            <a class="btn btn-sm btn-secondary"
+                               asp-controller="Products"
+                               asp-action="Edit"
+                               asp-route-id="@p.Id">
+                                @UiIcons.Svg("pencil", 15) Ubah
+                            </a>
+
+                            <form asp-controller="Products"
+                                  asp-action="Toggle"
+                                  method="post"
+                                  class="inline">
+                                <input type="hidden" name="id" value="@p.Id" />
+                                <input type="hidden"
+                                       name="active"
+                                       value="@((!p.IsActive).ToString().ToLowerInvariant())" />
+
+                                <button type="submit" class="btn btn-sm @(p.IsActive ? "btn-danger" : "btn-secondary")">
+                                    @(p.IsActive ? "Nonaktifkan" : "Aktifkan")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty">
+                                <div class="e-ico">@UiIcons.Svg("package", 28)</div>
+                                <h3>Belum ada produk</h3>
+                                <p>Tambahkan produk pertama Anda untuk mulai mengelola stok.</p>
+                                <a class="btn" asp-controller="Products" asp-action="Create">
+                                    Tambah produk
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

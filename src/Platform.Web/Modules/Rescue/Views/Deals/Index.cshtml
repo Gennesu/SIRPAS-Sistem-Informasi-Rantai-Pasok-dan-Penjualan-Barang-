@@ -1,0 +1,63 @@
+@model Platform.Web.Modules.Rescue.ViewModels.DealsViewModel
+@using Platform.Web.Modules.Rescue.Contracts
+@using Platform.Web.Modules.Rescue.ViewModels
+@{
+    ViewData["Title"] = "Promo & penawaran";
+    string SortUrl(string sort) => Url.Action("Index", "Deals", new { sort, seller = Model.SellerId })!;
+}
+
+<div class="page-head">
+    <div>
+        <h1>Promo &amp; penawaran</h1>
+        <p class="lead">Barang grosir mendekati kadaluarsa dengan harga miring. Paket khusus untuk Anda muncul paling atas.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-secondary" asp-action="Offers">@UiIcons.Svg("history", 18) Riwayat penawaran</a></div>
+</div>
+
+@if (Model.OpenOffers.Count > 0)
+{
+    <div class="section-title mt-0"><span>@UiIcons.Svg("send", 22)</span><h2>Penawaran khusus untuk Anda</h2><span class="badge badge-ok">@Model.OpenOffers.Count baru</span></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr))">
+        @foreach (var o in Model.OpenOffers)
+        {
+            <div class="stack" style="--gap:8px">
+                @if (o.Bundle is not null) { <partial name="_BundleTicket" model="new BundleTicketModel(o.Bundle, false, o.Id)" /> }
+                <div class="card tight flat row-between">
+                    <span class="small">@UiIcons.Svg("message-circle", 15) <b>@o.SellerName</b>@(string.IsNullOrEmpty(o.Message) ? "" : ": " + o.Message) <span class="muted">· disarankan @o.SuggestedBundles paket · sampai @IdFormat.Stamp(o.ExpiresAt)</span></span>
+                    <form asp-action="Decline" asp-route-id="@o.Id" method="post" class="inline"><button class="btn btn-sm btn-ghost" type="submit" data-confirm="Tolak penawaran dari @o.SellerName?" data-confirm-ok="Ya, tolak">Tolak</button></form>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="section-title@(Model.OpenOffers.Count == 0 ? " mt-0" : "")"><span>@UiIcons.Svg("badge-percent", 22)</span><h2>Promo anti-mubazir</h2><span class="muted small">@Model.Bundles.Count paket tersedia</span></div>
+<div class="row-between mb-2">
+    <div class="chips">
+        <a class="chip @(Model.Sort == "expiry" ? "active" : "")" href="@SortUrl("expiry")">@UiIcons.Svg("clock", 15) Paling mendesak</a>
+        <a class="chip @(Model.Sort == "discount" ? "active" : "")" href="@SortUrl("discount")">@UiIcons.Svg("percent", 15) Diskon terbesar</a>
+        <a class="chip @(Model.Sort == "near" ? "active" : "")" href="@SortUrl("near")">@UiIcons.Svg("map-pin", 15) Terdekat</a>
+        <a class="chip @(Model.Sort == "price" ? "active" : "")" href="@SortUrl("price")">@UiIcons.Svg("wallet", 15) Harga terendah</a>
+    </div>
+    @if (Model.Sellers.Count > 1)
+    {
+        <form method="get" asp-action="Index" style="min-width:220px">
+            <input type="hidden" name="sort" value="@Model.Sort" />
+            <select name="seller" data-autosubmit aria-label="Filter grosir">
+                <option value="">Semua grosir</option>
+                @foreach (var s in Model.Sellers) { <option value="@s.Id" selected="@(Model.SellerId == s.Id)">@s.Name</option> }
+            </select>
+        </form>
+    }
+</div>
+
+@if (Model.Bundles.Count == 0)
+{
+    <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("badge-percent", 30)</div><h3>Belum ada promo tersedia</h3><p>Grosir menayangkan paket saat ada barang yang mendekati kadaluarsa. Cek lagi nanti, atau lihat katalog normal.</p><a class="btn" asp-controller="Marketplace" asp-action="Index">Cari grosir</a></div></div>
+}
+<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr))">
+    @foreach (var b in Model.Bundles)
+    {
+        <partial name="_BundleTicket" model="new BundleTicketModel(b, false)" />
+    }
+</div>

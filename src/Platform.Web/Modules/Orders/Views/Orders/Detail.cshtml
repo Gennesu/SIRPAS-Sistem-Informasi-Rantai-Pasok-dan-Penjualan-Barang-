@@ -1,0 +1,202 @@
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Orders.Domain
+@using Platform.Web.Modules.Delivery.Contracts
+@model OrderDetailDto
+@inject TimeProvider Time
+@{
+    ViewData["Title"] = "Pesanan " + Model.Number;
+    ViewData["Nav"] = "Orders/Index";
+    var isSeller = Model.IsSeller;
+    var livestockSale = Model.IsLivestockSale;
+    var counterpartRole = livestockSale ? (isSeller ? "agen" : "peternakan") : isSeller ? "warung" : "grosir";
+    var t = Model.Tracking!;
+    var steps = Model.Steps!;
+    var delivery = Model.Fulfillment == FulfillmentType.Delivery;
+    var hasCoords = t.SellerLat.HasValue && t.SellerLon.HasValue && t.BuyerLat.HasValue && t.BuyerLon.HasValue;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var failed = Model.Status is OrderStatus.Rejected or OrderStatus.Cancelled;
+    var done = Model.Status == OrderStatus.Completed;
+    string Icon(string key) => key switch
+    {
+        "Pending" => "clock", "Accepted" => "check", "Preparing" => "package-open", "Ready" => "package-check",
+        "Delivered" => "truck", "PickedUp" => "hand-coins", "Completed" => "circle-check", _ => "circle-x"
+    };
+    string Wa(string? phone)
+    {
+        var digits = new string((phone ?? "").Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("0")) digits = "62" + digits[1..];
+        return "https://wa.me/" + digits;
+    }
+}
+@section Styles { @if (hasCoords) { <partial name="_MapStyles" /> } }
+
+<div class="crumbs"><a asp-action="Index">@(User.IsInRole(RoleNames.Livestock) ? "Penjualan ke agen" : isSeller ? "Pesanan masuk" : "Pesanan saya")</a> @UiIcons.Svg("chevron-right", 14) <span>@Model.Number</span></div>
+<div class="page-head">
+    <div>
+        <div class="status-line"><h1>Pesanan @Model.Number</h1><span class="@OrderLabels.BadgeClass(Model.Status)">@OrderLabels.Status(Model.Status)</span></div>
+        <p class="lead">@counterpartRole: @(isSeller ? Model.BuyerName : Model.SellerName) &middot; dibuat @IdFormat.StampWithYear(Model.CreatedAt) WIB</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-secondary" asp-action="Nota" asp-route-id="@Model.Id" target="_blank">@UiIcons.Svg("printer", 18) Cetak nota</a>
+        @if (!string.IsNullOrWhiteSpace(t.CounterpartPhone))
+        {
+            <a class="btn btn-secondary" href="@Wa(t.CounterpartPhone)" target="_blank" rel="noopener">@UiIcons.Svg("message-circle", 18) Hubungi @counterpartRole</a>
+        }
+    </div>
+</div>
+
+<div class="track-hero">
+    <div>
+        <div class="status-line">@if (!done && !failed) { <span class="dot-live"></span> }<h2>@t.WaitingFor</h2></div>
+        <p>
+            @if (failed) { <text>@(string.IsNullOrEmpty(Model.RejectReason) ? "Pesanan tidak dilanjutkan." : "Alasan: " + Model.RejectReason)</text> }
+            else if (done) { <text>Barang sudah diterima dan stok @(livestockSale ? "agen" : "warung") bertambah.</text> }
+            else if (delivery && t.EtaUtc is DateTime) { <text>Barang dalam perjalanan ke warung.</text> }
+            else if (delivery && t.TravelMinutes is int tm) { <text>Perkiraan perjalanan sekitar @tm menit setelah barang berangkat.</text> }
+            else { <text>@(livestockSale ? "Barang telah diserahkan peternakan; agen perlu mengonfirmasi penerimaan." : "Ambil barang di toko grosir saat statusnya siap diambil.")</text> }
+        </p>
+    </div>
+    <div class="eta">
+        @if (delivery && t.EtaUtc is DateTime eta && !done && !failed) { <span>Perkiraan tiba</span><b>@IdFormat.Clock(eta) WIB</b> }
+        else if (delivery && t.RoadKm is double rk) { <span>Jarak pengiriman</span><b>@rk.ToString("0.0") km</b> }
+        else { <span>Total pesanan</span><b>@Rupiah.Format(Model.TotalAmount)</b> }
+    </div>
+</div>
+
+<div class="card mt-2">
+    <ol class="phases" aria-label="Fase pesanan">
+        @foreach (var s in steps)
+        {
+            <li class="@s.State.ToString().ToLowerInvariant()"><span class="p-dot">@UiIcons.Svg(s.State == TrackingState.Failed ? "circle-x" : Icon(s.Key), s.State == TrackingState.Failed ? 20 : 19)</span><span>@s.Title</span></li>
+        }
+    </ol>
+</div>
+
+@if (Model.Savings > 0)
+{
+    <div class="alert alert-ok mt-2" style="margin-bottom:0">@UiIcons.Svg("heart-handshake", 20)<div class="grow">Pesanan ini memakai <b>paket anti-mubazir</b>: warung hemat <b>@Rupiah.Format(Model.Savings)</b> dibanding harga normal, dan barang yang hampir kadaluarsa terselamatkan.</div></div>
+}
+
+<div class="split mt-2">
+    <div class="stack" style="--gap:18px">
+        @if (hasCoords)
+        {
+            <div class="card pad-0">
+                <div class="card-head" style="padding:18px 20px 0"><h2>@UiIcons.Svg("map-pin", 21) @(delivery ? "Rute pengiriman" : "Lokasi pengambilan")</h2>@if (t.RoadKm is double d) { <span class="badge">@d.ToString("0.0") km@(t.TravelMinutes is int m ? $" · ±{m} mnt" : "")</span> }</div>
+                <div style="padding:14px 20px 20px">
+                    <div class="track-map" id="track-map"
+                         data-order="@Model.Id" data-status="@Model.Status" data-mode="@Model.Fulfillment"
+                         data-seller-lat="@t.SellerLat!.Value.ToString(inv)" data-seller-lon="@t.SellerLon!.Value.ToString(inv)" data-seller-name="@t.SellerName"
+                         data-buyer-lat="@t.BuyerLat!.Value.ToString(inv)" data-buyer-lon="@t.BuyerLon!.Value.ToString(inv)" data-buyer-name="@t.BuyerName"
+                         data-shipped="@(t.ShippedAtUtc?.ToString("o"))" data-minutes="@t.TravelMinutes" data-km="@(t.RoadKm?.ToString(inv))">
+                        <div class="track-note">
+            <span id="track-caption">@(delivery ? "Posisi truk diperkirakan dari estimasi waktu, bukan GPS" : livestockSale ? "Rute dari peternakan ke agen" : "Rute dari warung ke toko grosir")</span>
+                            <span id="track-source">Memuat rute…</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info" style="margin-bottom:0">@UiIcons.Svg("map-pin", 20)<div class="grow">Peta pelacakan tampil setelah kedua usaha melengkapi titik lokasi di <b>Profil</b>.</div></div>
+        }
+
+        <div class="card">
+            <div class="card-head"><h2>@UiIcons.Svg("package", 21) Barang</h2></div>
+            <div class="table-wrap">
+                <table class="table table-stack order-lines">
+                    <thead><tr><th>Produk</th><th class="right">Jumlah</th><th class="right">Harga</th><th class="right">Subtotal</th></tr></thead>
+                    <tbody>
+                    @foreach (var i in Model.Items)
+                    {
+                        <tr>
+                            <td class="cell-title">
+                                <span class="name">@i.ProductName</span>
+                                @if (!string.IsNullOrEmpty(i.BundleName)) { <span class="bundle-tag badge badge-tag">@UiIcons.Svg("gift", 12) Paket: @i.BundleName</span> }
+                                @if (!string.IsNullOrEmpty(i.ExpiryText)) { <span class="sub">@i.ExpiryText</span> }
+                            </td>
+                            <td class="right" data-label="Jumlah">@i.QtyPack @i.UnitName@(i.ConversionToBase > 1 ? $" (isi {i.ConversionToBase}) = {i.QtyBase}" : "")</td>
+                            <td class="right num" data-label="Harga">@Rupiah.Format(i.UnitPrice)</td>
+                            <td class="right num" data-label="Subtotal"><b>@Rupiah.Format(i.Subtotal)</b></td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot>
+                        <tr><td colspan="3" class="right">Subtotal</td><td class="right num">@Rupiah.Format(Model.Subtotal)</td></tr>
+                        <tr><td colspan="3" class="right">Ongkir@(Model.DeliveryDistanceKm is double dd ? $" ({dd:0.0} km)" : "")</td><td class="right num">@(Model.DeliveryFee == 0 ? "Gratis" : Rupiah.Format(Model.DeliveryFee))</td></tr>
+                        <tr><td colspan="3" class="right">Total</td><td class="right num">@Rupiah.Format(Model.TotalAmount)</td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="stack" style="--gap:18px">
+        @if (Model.Actions.Count > 0)
+        {
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("zap", 21) Tindakan</h2></div>
+                <div class="stack" style="--gap:12px">
+                @foreach (var action in Model.Actions)
+                {
+                    var needsReason = action is OrderAction.Reject or OrderAction.SellerCancel;
+                    var danger = needsReason || action == OrderAction.BuyerCancel;
+                    <form asp-controller="Orders" asp-action="Act" method="post" data-once>
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <input type="hidden" name="action" value="@action" />
+                        @if (needsReason) { <div class="field" style="margin-bottom:8px"><input name="reason" placeholder="Alasan (wajib)" aria-label="Alasan" required /></div> }
+                        <button type="submit" class="btn btn-block @(danger ? "btn-danger-ghost" : "btn-lg")"
+                                @(danger ? "data-confirm=\"Lanjutkan?\" data-confirm-danger" : "")>@OrderLabels.Action(action, Model.Fulfillment)</button>
+                    </form>
+                }
+                </div>
+                <p class="hint mt-1 mb-0">@(livestockSale ? "Setelah agen mengonfirmasi penerimaan, stok agen bertambah dan pembelian tercatat." : "Menerima pesanan mengurangi stok grosir (batch yang paling dekat kadaluarsa keluar lebih dulu). Saat warung mengonfirmasi, stok warung bertambah dan modal dihitung dari harga pesanan.")</p>
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-head"><h2>@UiIcons.Svg("history", 21) Riwayat fase</h2></div>
+            <ol class="timeline">
+                @foreach (var s in steps)
+                {
+                    <li class="tl-step @s.State.ToString().ToLowerInvariant()">
+                        <span class="tl-node">@UiIcons.Svg(s.State == TrackingState.Failed ? "circle-x" : s.State == TrackingState.Done ? "check" : Icon(s.Key), 18)</span>
+                        <div>
+                            <div class="tl-title"><span>@s.Title</span>@if (s.At is DateTime at) { <span class="tl-time">@IdFormat.Stamp(at)</span> }</div>
+                            <div class="tl-desc">@s.Description</div>
+                        </div>
+                    </li>
+                }
+            </ol>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h2>@UiIcons.Svg("info", 21) Rincian</h2></div>
+            <dl class="kv">
+                @if (livestockSale)
+                {
+                    <dt>Peternakan</dt><dd>@Model.SellerName</dd>
+                    <dt>Agen</dt><dd>@Model.BuyerName</dd>
+                }
+                else
+                {
+                    <dt>Warung</dt><dd>@Model.BuyerName</dd>
+                    <dt>Grosir</dt><dd>@Model.SellerName</dd>
+                }
+                <dt>Cara terima</dt><dd>@OrderLabels.Fulfillment(Model.Fulfillment)</dd>
+                @if (!string.IsNullOrEmpty(Model.DeliveryAddress)) { <dt>Alamat</dt><dd>@Model.DeliveryAddress</dd> }
+                @if (!string.IsNullOrEmpty(Model.Note)) { <dt>Catatan</dt><dd>@Model.Note</dd> }
+                <dt>Diperbarui</dt><dd>@IdFormat.Stamp(Model.UpdatedAt)</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (hasCoords)
+    {
+        <partial name="_MapScripts" />
+    }
+    <script src="~/js/track-map.js" asp-append-version="true"></script>
+}

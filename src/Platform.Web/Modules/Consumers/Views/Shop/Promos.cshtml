@@ -1,0 +1,31 @@
+@model IReadOnlyList<Platform.Web.Modules.Consumers.Contracts.PromoDealDto>
+@{ ViewData["Title"] = "Promo masih layak konsumsi"; ViewData["Nav"] = "Shop/Promos"; }
+<div class="page-head"><div><h1>Promo masih layak konsumsi</h1><p class="lead">Produk mendekati tanggal kedaluwarsa dijual lebih murah agar tidak terbuang. Produk yang sudah kedaluwarsa tidak pernah ditawarkan. Periksa tanggalnya sebelum membeli.</p></div></div>
+@if (Model.Count == 0)
+{
+    <div class="card empty"><h3>Belum ada promo</h3><p class="muted">Promo muncul saat warung menandai produk yang mendekati kedaluwarsa.</p></div>
+}
+else
+{
+    <div class="card pad-0"><div class="table-wrap"><table class="table table-stack hover">
+        <thead><tr><th>Produk</th><th>Warung</th><th class="right">Harga</th><th class="right">Tersedia promo</th><th>Kedaluwarsa</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var d in Model)
+        {
+            <tr>
+                <td data-label="Produk" class="cell-title">
+                    <div class="pcell">
+                        <partial name="_ProductThumb" model="new ProductThumbModel(d.ImagePath, d.ProductName, 52)" />
+                        <div class="grow"><b>@d.ProductName</b> <span class="badge badge-warn">-@d.Percent%</span></div>
+                    </div>
+                </td>
+                <td data-label="Warung">@d.ShopName</td>
+                <td data-label="Harga" class="right"><s class="muted">@Rupiah.Format(d.RegularPrice)</s> <b>@Rupiah.Format(d.PromoPrice)</b></td>
+                <td data-label="Tersedia promo" class="right num">@d.PromoQty @d.BaseUnitName</td>
+                <td data-label="Kedaluwarsa">@WibTime.Format(d.NearestExpiry) <span class="badge @(d.DaysLeft <= 3 ? "badge-danger" : "badge-warn")">@d.DaysLeft hari lagi</span></td>
+                <td class="right"><a class="btn btn-sm" asp-action="Detail" asp-route-id="@d.ShopId">Beli</a></td>
+            </tr>
+        }
+        </tbody>
+    </table></div></div>
+}

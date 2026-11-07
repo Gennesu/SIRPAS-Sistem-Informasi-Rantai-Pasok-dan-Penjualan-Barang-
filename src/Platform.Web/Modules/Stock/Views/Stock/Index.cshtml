@@ -1,0 +1,141 @@
+@using Platform.Web.Modules.Stock.Contracts
+@using Platform.Web.Modules.Stock.Domain
+@model IReadOnlyList<StockItemDto>
+@inject IExpiryService Expiry
+@{
+    ViewData["Title"] = "Stok";
+    var query = ViewData["Query"] as string;
+    var today = WibTime.TodayWib(TimeProvider.System);
+    var batches = (await Expiry.GetBatchesAsync()).GroupBy(b => b.ProductId).ToDictionary(g => g.Key, g => g.ToList());
+}
+
+<div class="page-head">
+    <div>
+        <h1>Stok</h1>
+        <p class="lead">Stok dihitung dalam satuan dasar. Untuk menambah jumlah, gunakan <b>Catat stok masuk</b> atau <b>Koreksi stok</b>. Tombol di kolom harga hanya menyimpan harga jual dan stok minimum; tanggal kedaluwarsa dicatat saat stok masuk atau lewat tombol Tandai.</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn" asp-controller="Purchases" asp-action="Create">@UiIcons.Svg("package-open", 18) Catat stok masuk</a>
+        <a class="btn btn-secondary" asp-controller="Stock" asp-action="Movements">@UiIcons.Svg("history", 18) Riwayat pergerakan</a>
+        <a class="btn btn-tag" asp-controller="Rescue" asp-action="Index">@UiIcons.Svg("leaf", 18) Dashboard kadaluarsa</a>
+    </div>
+</div>
+
+<form method="get" asp-controller="Stock" asp-action="Index" class="filter">
+    <div class="search-box" style="min-width:min(100%,360px)">@UiIcons.Svg("search", 18)<input type="search" name="q" value="@query" placeholder="Cari produk" aria-label="Cari produk" /></div>
+    <button type="submit" class="btn btn-secondary">Cari</button>
+</form>
+
+<div class="card pad-0">
+    <div class="table-wrap">
+        <table class="table table-stack">
+            <thead><tr><th>Produk</th><th>Stok</th><th>Kadaluarsa terdekat</th><th class="right">Modal / item</th><th>Status</th><th>Harga jual &amp; minimum</th></tr></thead>
+            <tbody>
+            @foreach (var s in Model)
+            {
+                var untracked = s.QtyBase - s.TrackedQtyBase;
+                batches.TryGetValue(s.ProductId, out var productBatches);
+                <tr>
+                    <td class="cell-title"><span class="name">@s.ProductName</span><span class="sub">@s.CategoryName@(string.IsNullOrEmpty(s.Sku) ? "" : " · " + s.Sku)</span></td>
+                    <td data-label="Stok"><b>@Rupiah.Number(s.QtyBase, 0)</b> @s.BaseUnitName<span class="sub">@s.QtyBreakdown</span></td>
+                    <td data-label="Kadaluarsa terdekat">
+                        @if (s.NearestExpiry is DateOnly ne)
+                        {
+                            var days = ExpiryBands.DaysLeft(ne, today);
+                            <span class="pill-band band-@ExpiryBands.Of(days).ToString().ToLowerInvariant()">@ExpiryBands.DaysText(days)</span>
+                            <span class="sub">@IdFormat.Date(ne)@(productBatches is { Count: > 1 } ? $" · {productBatches.Count} batch" : "")@(untracked > 0 ? $" · {untracked} belum bertanggal" : "")</span>
+                        }
+                        else if (s.QtyBase > 0)
+                        {
+                            <span class="muted small">Belum diisi</span>
+                            <button type="button" class="link-btn small" data-open-dialog="#tag-dialog" data-tag-product="@s.ProductId" data-tag-name="@s.ProductName" data-tag-max="@untracked">Tandai</button>
+                        }
+                        else { <span class="muted">—</span> }
+                        @if (s.NearestExpiry is not null && untracked > 0)
+                        {
+                            <button type="button" class="link-btn small" data-open-dialog="#tag-dialog" data-tag-product="@s.ProductId" data-tag-name="@s.ProductName" data-tag-max="@untracked">+ tandai sisanya</button>
+                        }
+                    </td>
+                    <td class="right num" data-label="Modal / item">@Rupiah.Format(s.AvgCostBase, 2)</td>
+                    <td data-label="Status">
+                        @switch (s.Status)
+                        {
+                            case StockStatus.Out: <span class="badge badge-danger">Habis</span> break;
+                            case StockStatus.Low: <span class="badge badge-warn">Menipis</span> break;
+                            default: <span class="badge badge-ok">Aman</span> break;
+                        }
+                    </td>
+                    <td data-label="Harga jual & minimum">
+                        <form asp-controller="Stock" asp-action="Settings" method="post" class="inline-form">
+                            <input type="hidden" name="productId" value="@s.ProductId" />
+                            <input name="sellingPrice" inputmode="decimal" value="@(s.SellingPriceBase > 0 ? s.SellingPriceBase.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "")" placeholder="Harga jual" title="Harga jual per @s.BaseUnitName" style="width:110px" />
+                            <input name="minStock" inputmode="numeric" value="@s.MinStockBase" title="Stok minimum" style="width:80px" />
+                            <button type="submit" class="btn btn-sm btn-secondary" title="Simpan harga jual dan stok minimum; tidak mengubah jumlah stok">Simpan pengaturan</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="6" class="muted">Belum ada produk. Tambahkan produk lebih dulu.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-head"><h2>@UiIcons.Svg("pencil", 21) Koreksi stok</h2></div>
+    <p class="muted small">Tambah manual, barang rusak, kadaluarsa, atau koreksi. Setiap perubahan tercatat di riwayat pergerakan.</p>
+    <form asp-controller="Stock" asp-action="Adjust" method="post" data-once>
+        <div class="form-grid">
+            <div class="field">
+                <label for="adj-product">Produk</label>
+                <select id="adj-product" name="ProductId">
+                    <option value="0">— Pilih produk —</option>
+                    @foreach (var s in Model) { <option value="@s.ProductId">@s.ProductName (stok @s.QtyBase)</option> }
+                </select>
+            </div>
+            <div class="field">
+                <label for="adj-type">Jenis</label>
+                <select id="adj-type" name="Type">
+                    @foreach (var t in MovementTypes.ManualChoices) { <option value="@t">@MovementTypes.Label(t)</option> }
+                </select>
+            </div>
+            <div class="field"><label for="adj-qty">Jumlah (satuan dasar)</label><input id="adj-qty" name="Qty" inputmode="numeric" /></div>
+            <div class="field"><label for="adj-cost">Biaya per item (hanya tambah manual, opsional)</label><input id="adj-cost" name="CostPerBase" inputmode="decimal" /></div>
+            <div class="field"><label for="adj-exp">Tanggal kadaluarsa (hanya tambah manual, opsional)</label><input id="adj-exp" type="date" name="ExpiryDate" min="@today.ToString("yyyy-MM-dd")" /></div>
+            <div class="field"><label for="adj-reason">Alasan</label><input id="adj-reason" name="Reason" /></div>
+        </div>
+        <button type="submit" class="btn">Simpan koreksi</button>
+    </form>
+</div>
+
+<dialog class="modal" id="tag-dialog">
+    <form asp-controller="Stock" asp-action="Tag" method="post" data-once>
+        <div class="modal-head"><h2>Tandai tanggal kadaluarsa</h2></div>
+        <div class="modal-body">
+            <p class="muted small">Stok yang sudah ada diberi tanggal kadaluarsa agar muncul di dashboard food waste. Jumlah stok tidak berubah.</p>
+            <input type="hidden" name="ProductId" id="tag-product" />
+            <div class="field"><span class="label">Produk</span><b id="tag-name"></b></div>
+            <div class="form-grid">
+                <div class="field"><label for="tag-qty">Jumlah (satuan dasar)</label><input id="tag-qty" name="Qty" type="number" min="1" inputmode="numeric" required /><span class="hint" id="tag-hint"></span></div>
+                <div class="field"><label for="tag-date">Tanggal kadaluarsa</label><input id="tag-date" name="ExpiryDate" type="date" min="@today.AddYears(-1).ToString("yyyy-MM-dd")" required /></div>
+            </div>
+        </div>
+        <div class="modal-foot"><button type="button" class="btn btn-secondary" data-close-dialog>Batal</button><button type="submit" class="btn">Simpan tanggal</button></div>
+    </form>
+</dialog>
+
+@section Scripts {
+    <script>
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-tag-product]'); if (!b) return;
+      document.getElementById('tag-product').value = b.dataset.tagProduct;
+      document.getElementById('tag-name').textContent = b.dataset.tagName;
+      var max = parseInt(b.dataset.tagMax, 10) || 0, q = document.getElementById('tag-qty');
+      q.value = max; q.max = max;
+      document.getElementById('tag-hint').textContent = 'Maksimal ' + max + ' (yang belum bertanggal).';
+    });
+    </script>
+}

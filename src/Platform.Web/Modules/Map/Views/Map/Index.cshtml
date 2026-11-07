@@ -1,0 +1,141 @@
+@model Platform.Web.Modules.Map.ViewModels.MapViewModel
+@using System.Globalization
+@{
+    var isLivestock = User.IsInRole(RoleNames.Livestock);
+    var mapTitle = isLivestock ? "Cari agen untuk jual telur" : "Peta agen";
+    ViewData["Title"] = mapTitle;
+    var inv = CultureInfo.InvariantCulture;
+    var withCoords = Model.Wholesalers.Where(w => w.Latitude.HasValue && w.Longitude.HasValue).ToList();
+    var noCoords = Model.Wholesalers.Where(w => !w.Latitude.HasValue || !w.Longitude.HasValue).ToList();
+}
+@section Styles { <partial name="_MapStyles" /> }
+
+<div class="page-head">
+    <div>
+        <h1>@mapTitle</h1>
+        <p class="lead">@(isLivestock
+            ? "Temukan agen terdekat untuk menawarkan telur dan hasil peternakan Anda."
+            : "Temukan grosir terdekat, lihat ongkir ke warung Anda, dan promo anti-mubazir langsung di peta.")</p>
+    </div>
+    @if (!isLivestock)
+    {
+        <div class="page-actions"><a class="btn btn-secondary" asp-controller="Marketplace" asp-action="Index">@UiIcons.Svg("list", 18) Tampilan daftar</a></div>
+    }
+</div>
+
+@if (!Model.HasOwnLocation)
+{
+    <div class="alert alert-warn">@UiIcons.Svg("map-pin", 20)<div class="grow"><b>Lokasi usaha Anda belum diisi.</b> @(isLivestock ? "Jarak ke agen pembeli belum dapat dihitung." : "Jarak dan ongkir hanya perkiraan sampai Anda menentukan titik lokasi.") <a asp-controller="Business" asp-action="Profile"><b>Atur lokasi di Profil</b></a></div></div>
+}
+
+<div class="map-shell" data-map-explorer data-mode="retail"
+     data-origin-lat="@Model.OwnLat?.ToString(inv)" data-origin-lon="@Model.OwnLon?.ToString(inv)" data-origin-name="@Model.OwnName">
+    <section class="map-panel" aria-label="@(isLivestock ? "Daftar agen" : "Daftar grosir")">
+        <div class="map-panel-head">
+            <div class="search-box">@UiIcons.Svg("search", 18)<input type="search" id="q" placeholder="@(isLivestock ? "Cari nama agen" : "Cari nama grosir atau barang")" autocomplete="off" aria-label="@(isLivestock ? "Cari agen" : "Cari grosir")" /></div>
+            <div class="chips scroll" id="filters">
+                <button type="button" class="chip active" data-filter="all">Semua <span class="count">@withCoords.Count</span></button>
+                @if (!isLivestock)
+                {
+                    <button type="button" class="chip" data-filter="deals">@UiIcons.Svg("badge-percent", 14) Ada promo</button>
+                    <button type="button" class="chip" data-filter="delivery">@UiIcons.Svg("truck", 14) Bisa diantar</button>
+                }
+                <button type="button" class="chip" data-filter="near">@UiIcons.Svg("map-pin", 14) &le; 5 km</button>
+            </div>
+        </div>
+        <div class="map-list" id="list">
+            @foreach (var w in withCoords.OrderBy(x => x.DistanceKm ?? double.MaxValue))
+            {
+                var kind = isLivestock ? "shop" : !w.DeliveryInRange && !w.OffersPickup ? "out" : w.RescueDeals > 0 ? "promo" : "shop";
+                <article class="map-card" tabindex="0" data-card data-id="@w.BusinessId" data-kind="@kind" data-lat="@w.Latitude!.Value.ToString(inv)" data-lon="@w.Longitude!.Value.ToString(inv)"
+                         data-name="@w.Name" data-distance="@w.DistanceKm?.ToString(inv)" data-delivery="@(w.OffersDelivery && w.DeliveryInRange ? "1" : "0")" data-deals="@w.RescueDeals"
+                         data-search="@((isLivestock ? w.Name : w.Name + " " + string.Join(" ", w.MatchingProducts)).ToLowerInvariant())" data-label="@(!isLivestock && w.RescueDeals > 0 ? "%" : "")">
+                    <span class="m-ico">@UiIcons.Svg(!isLivestock && w.RescueDeals > 0 ? "badge-percent" : "store", 22)</span>
+                    <div>
+                        <h3>@w.Name</h3>
+                        <div class="muted small">@w.Address</div>
+                        <div class="m-meta">
+                            @if (w.DistanceKm is double d) { <span>@UiIcons.Svg("map-pin", 13) @d.ToString("0.0") km</span> }
+                            @if (!isLivestock)
+                            {
+                                @if (w.OffersDelivery && w.DeliveryInRange) { <span>@UiIcons.Svg("truck", 13) Ongkir @Rupiah.Format(w.DeliveryFee)</span> }
+                                else if (w.OffersDelivery) { <span style="color:var(--red-700)">@UiIcons.Svg("truck", 13) Di luar jangkauan</span> }
+                                @if (w.OffersPickup) { <span>@UiIcons.Svg("hand-coins", 13) Ambil sendiri</span> }
+                            }
+                        </div>
+                        <div class="m-badges">
+                            @if (isLivestock)
+                            {
+                                <span class="badge">Agen calon pembeli hasil ternak</span>
+                            }
+                            else
+                            {
+                                @if (w.RescueDeals > 0) { <span class="badge badge-tag">@UiIcons.Svg("leaf", 12) @w.RescueDeals promo, sampai -@w.BestDiscountPercent%</span> }
+                                @if (w.MinOrderAmount > 0) { <span class="badge">Min. @Rupiah.Format(w.MinOrderAmount)</span> }
+                            }
+                        </div>
+                    </div>
+                    <template class="pop">
+                        <div class="pop">
+                            <h3>@w.Name</h3>
+                            <div class="p-addr">@w.Address</div>
+                            @if (isLivestock)
+                            {
+                                <div class="p-grid">
+                                    <div><small>Jarak dari peternakan</small><b>@(w.DistanceKm is double dd ? dd.ToString("0.0") + " km" : "Belum diketahui")</b></div>
+                                    <div><small>Tujuan</small><b>Calon pembeli telur dan hasil ternak</b></div>
+                                </div>
+                            }
+                            else
+                            {
+                            <div class="p-grid">
+                                <div><small>Jarak</small><b>@(w.DistanceKm is double dd ? dd.ToString("0.0") + " km" : "—")</b></div>
+                                <div><small>Ongkir</small><b>@(w.OffersDelivery && w.DeliveryInRange ? Rupiah.Format(w.DeliveryFee) : w.OffersDelivery ? "Di luar jangkauan" : "Tidak diantar")</b></div>
+                                <div><small>Min. pesanan</small><b>@(w.MinOrderAmount > 0 ? Rupiah.Format(w.MinOrderAmount) : "Tanpa minimal")</b></div>
+                                <div><small>Produk</small><b>@w.ProductCount item</b></div>
+                            </div>
+                            @if (w.RescueDeals > 0) { <p class="small" style="margin-bottom:10px"><span class="badge badge-tag">@w.RescueDeals promo anti-mubazir, hemat sampai @w.BestDiscountPercent%</span></p> }
+                            }
+                            @if (!isLivestock)
+                            {
+                                <a class="btn btn-sm" asp-controller="Marketplace" asp-action="Wholesaler" asp-route-id="@w.BusinessId">Lihat katalog &amp; pesan</a>
+                            }
+                        </div>
+                    </template>
+                </article>
+            }
+            @if (withCoords.Count == 0)
+            {
+                <div class="empty"><div class="e-ico">@UiIcons.Svg("map", 28)</div><h3>@(isLivestock ? "Belum ada agen di peta" : "Belum ada grosir di peta")</h3><p>@(isLivestock ? "Agen terverifikasi yang sudah mengisi lokasi akan muncul di sini." : "Grosir yang terverifikasi dan sudah mengisi lokasi akan muncul di sini.")</p></div>
+            }
+            <div class="empty hide" id="no-match"><h3>Tidak ada yang cocok</h3><p>Ubah kata kunci atau filter.</p></div>
+            @foreach (var w in noCoords)
+            {
+                <article class="map-card prospect" style="cursor:default"><span class="m-ico">@UiIcons.Svg("store", 22)</span><div><h3>@w.Name</h3><div class="muted small">@(isLivestock ? "Lokasi agen belum dicantumkan, jarak calon pembeli tidak dapat dihitung." : "Lokasi belum diisi, tidak tampil di peta.")</div>@if (!isLivestock) { <a class="small" asp-controller="Marketplace" asp-action="Wholesaler" asp-route-id="@w.BusinessId"><b>Lihat katalog</b></a> }</div></article>
+            }
+        </div>
+    </section>
+
+    <section class="map-canvas" aria-label="Peta">
+        <div class="map-el"></div>
+        <div class="map-hud">
+            <button type="button" class="hud-btn" id="btn-me">@UiIcons.Svg("locate-fixed", 17) Lokasi saya</button>
+            <button type="button" class="hud-btn" id="btn-fit">@UiIcons.Svg("map", 17) Tampilkan semua</button>
+        </div>
+        <div class="map-legend">
+            @if (isLivestock)
+            {
+                <span><i style="background:#a8531b"></i>Agen calon pembeli</span><span><i style="background:#2563c9"></i>Lokasi peternakan Anda</span>
+            }
+            else
+            {
+                <span><i style="background:#a8531b"></i>Grosir</span><span><i style="background:#ffc933"></i>Ada promo anti-mubazir</span><span><i style="background:#d3362b"></i>Di luar jangkauan</span><span><i style="background:#2563c9"></i>Lokasi Anda</span>
+            }
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_MapScripts" />
+    <script src="~/js/map-explorer.js" asp-append-version="true"></script>
+}

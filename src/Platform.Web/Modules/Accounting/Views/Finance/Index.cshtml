@@ -1,0 +1,237 @@
+@using Platform.Web.Modules.Accounting.Contracts
+@model Platform.Web.Modules.Reporting.Contracts.FinancialSummaryDto
+@{
+    ViewData["Title"] = "Keuangan";
+    var selection = ViewData["Selection"] as PeriodSelection
+        ?? new PeriodSelection(PeriodPreset.ThisMonth, null, null);
+    var today = ViewData["Today"] is DateOnly d
+        ? d
+        : WibTime.TodayWib(TimeProvider.System);
+}
+
+<div class="page-head">
+    <div>
+        <h1>Keuangan</h1>
+        <p class="lead">
+            Pembukuan dasar: omzet bukan keuntungan.
+            Keuntungan dihitung setelah modal barang terjual dan biaya operasional.
+            Periode: <b>@Model.Range.Label</b>
+            (@WibTime.Format(Model.Range.From) s.d. @WibTime.Format(Model.Range.To)).
+        </p>
+    </div>
+</div>
+
+<partial name="_PeriodFilter" model="selection" />
+
+<div class="grid grid-4 kpis mt-1">
+    <div class="kpi">
+        <div class="row-between">
+            <span class="k-label">Omzet</span>
+            <span class="k-ico">@UiIcons.Svg("wallet", 20)</span>
+        </div>
+        <div class="k-value">@Rupiah.Format(Model.Revenue)</div>
+    </div>
+
+    <div class="kpi good">
+        <div class="row-between">
+            <span class="k-label">Keuntungan kotor</span>
+            <span class="k-ico">@UiIcons.Svg("trending-up", 20)</span>
+        </div>
+        <div class="k-value">@Rupiah.Format(Model.GrossProfit)</div>
+    </div>
+
+    <div class="kpi warn">
+        <div class="row-between">
+            <span class="k-label">Biaya operasional</span>
+            <span class="k-ico">@UiIcons.Svg("receipt", 20)</span>
+        </div>
+        <div class="k-value">@Rupiah.Format(Model.OperatingExpense)</div>
+    </div>
+
+    <div class="kpi accent">
+        <div class="row-between">
+            <span class="k-label">Untung setelah biaya</span>
+            <span class="k-ico">@UiIcons.Svg("circle-dollar-sign", 20)</span>
+        </div>
+        <div class="k-value"
+             style="color:@(Model.NetResult >= 0 ? "var(--tag)" : "#ff9c92")">
+            @Rupiah.Format(Model.NetResult)
+        </div>
+    </div>
+</div>
+
+<div class="split mt-2">
+    <div class="card">
+        <div class="card-head">
+            <h2>@UiIcons.Svg("scale", 21) Ringkasan laba rugi</h2>
+        </div>
+
+        <dl class="kv" style="grid-template-columns:1fr auto">
+            <dt>Omzet (penjualan)</dt>
+            <dd>@Rupiah.Format(Model.Revenue)</dd>
+
+            <dt>Modal barang terjual (HPP)</dt>
+            <dd>&minus; @Rupiah.Format(Model.Cogs)</dd>
+
+            <dt style="color:var(--ink);font-weight:800">Keuntungan kotor</dt>
+            <dd>@Rupiah.Format(Model.GrossProfit)</dd>
+
+            <dt>Biaya operasional</dt>
+            <dd>&minus; @Rupiah.Format(Model.OperatingExpense)</dd>
+
+            <dt style="color:var(--ink);font-weight:800;border-top:2px solid var(--line-2);padding-top:10px">
+                Keuntungan setelah biaya
+            </dt>
+
+            <dd style="border-top:2px solid var(--line-2);padding-top:10px;color:@(Model.NetResult >= 0 ? "var(--brand-700)" : "var(--red-700)")">
+                @Rupiah.Format(Model.NetResult)
+            </dd>
+        </dl>
+
+        <p class="hint mt-2 mb-0">
+            Pembelian barang tidak dihitung sebagai biaya saat dibeli;
+            barang menjadi modal (HPP) ketika terjual.
+            Nilai persediaan saat ini: <b>@Rupiah.Format(Model.InventoryValue)</b>.
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <h2>@UiIcons.Svg("plus", 21) Catat pengeluaran</h2>
+        </div>
+
+        <form asp-controller="Finance"
+              asp-action="AddExpense"
+              method="post"
+              data-once>
+
+            <input type="hidden" name="preset" value="@selection.Preset" />
+            <input type="hidden" name="from" value="@selection.From?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="to" value="@selection.To?.ToString("yyyy-MM-dd")" />
+
+            <div class="form-grid">
+                <div class="field">
+                    <label for="exp-category">Kategori</label>
+                    <select id="exp-category" name="Category">
+                        @foreach (var c in ExpenseCategories.All)
+                        {
+                            <option value="@c">@c</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="exp-amount">Jumlah</label>
+                    <div class="input-group">
+                        <span class="addon">Rp</span>
+                        <input id="exp-amount"
+                               name="Amount"
+                               inputmode="decimal"
+                               placeholder="mis. 350000" />
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="exp-date">Tanggal</label>
+                    <input id="exp-date"
+                           type="date"
+                           name="Date"
+                           value="@today.ToString("yyyy-MM-dd")" />
+                </div>
+
+                <div class="field">
+                    <label for="exp-note">Catatan (opsional)</label>
+                    <input id="exp-note" name="Note" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-block">
+                Catat pengeluaran
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-head">
+        <h2>@UiIcons.Svg("list", 21) Pengeluaran operasional</h2>
+    </div>
+
+    @if (Model.ExpenseByCategory.Count > 0)
+    {
+        <div class="chips mb-2">
+            @foreach (var c in Model.ExpenseByCategory)
+            {
+                <span class="badge badge-tag">
+                    @c.Category: @Rupiah.Format(c.Amount)
+                </span>
+            }
+        </div>
+    }
+
+    <div class="table-wrap">
+        <table class="table table-stack">
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Kategori</th>
+                    <th>Catatan</th>
+                    <th class="right">Jumlah</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var e in Model.Expenses)
+                {
+                    <tr>
+                        <td class="cell-title">
+                            <span class="name">@WibTime.Format(e.Date)</span>
+                        </td>
+
+                        <td data-label="Kategori">
+                            <span class="badge">@e.Category</span>
+                        </td>
+
+                        <td data-label="Catatan" class="small">@e.Note</td>
+
+                        <td class="right num" data-label="Jumlah">
+                            <b>@Rupiah.Format(e.Amount)</b>
+                        </td>
+
+                        <td class="right cell-actions">
+                            <form asp-controller="Finance"
+                                  asp-action="DeleteExpense"
+                                  method="post"
+                                  class="inline">
+
+                                <input type="hidden" name="id" value="@e.Id" />
+                                <input type="hidden" name="preset" value="@selection.Preset" />
+                                <input type="hidden" name="from" value="@selection.From?.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="to" value="@selection.To?.ToString("yyyy-MM-dd")" />
+
+                                <button type="submit"
+                                        class="btn btn-sm btn-danger-ghost"
+                                        data-confirm="Hapus pengeluaran ini?"
+                                        data-confirm-title="Hapus pengeluaran"
+                                        data-confirm-ok="Ya, hapus"
+                                        data-confirm-danger>
+                                    @UiIcons.Svg("trash-2", 15) Hapus
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Expenses.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" class="muted">
+                            Belum ada pengeluaran pada periode ini.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>  

@@ -1,0 +1,36 @@
+@model Platform.Web.Modules.Notifications.Contracts.NotificationSummary
+@{
+    ViewData["Title"] = "Notifikasi";
+}
+
+<div class="page-head">
+    <div>
+        <h1>Notifikasi</h1>
+        <p class="lead">Daftar hal yang menunggu tindakan Anda. Angkanya dihitung ulang setiap halaman ini dibuka.</p>
+    </div>
+</div>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="card">
+        <div class="empty">
+            <div class="e-ico">@UiIcons.Svg("circle-check", 30)</div>
+            <h3>Semua beres</h3>
+            <p>Tidak ada pesanan, penawaran, atau barang kadaluarsa yang perlu ditangani sekarang.</p>
+            <a class="btn" asp-controller="Home" asp-action="Index">Kembali ke beranda</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="todo" style="max-width:760px">
+        @foreach (var n in Model.Items)
+        {
+            <a class="todo-item @n.Tone.ToString().ToLowerInvariant()" href="@n.Url">
+                <span class="t-ico">@UiIcons.Svg(n.Icon, 22)</span>
+                <span><b>@n.Title</b><span>@n.Detail</span></span>
+                <span class="go">@UiIcons.Svg("chevron-right", 20)</span>
+            </a>
+        }
+    </div>
+}

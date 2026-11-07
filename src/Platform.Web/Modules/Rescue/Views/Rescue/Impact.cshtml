@@ -1,0 +1,21 @@
+@model Platform.Web.Modules.Rescue.Contracts.FoodWasteSummaryDto
+@{
+    ViewData["Title"] = "Dampak food waste";
+    ViewData["Nav"] = "Rescue/Impact";
+    var days = (int)(ViewData["Days"] ?? 30);
+}
+<div class="page-head"><div><h1>Dampak food waste</h1>
+    <p class="lead">Dihitung dari catatan stok dan transaksi nyata pada @WibTime.Format(Model.From) - @WibTime.Format(Model.To). <b>Terjual</b> = kasir, pesanan pembeli akhir, dan pesanan usaha yang dikirim. <b>Tersalurkan</b> = unit dari promo/paket anti-mubazir yang terjual. <b>Terbuang</b> = batch kedaluwarsa yang dibuang (kerugian pada modal).</p></div>
+    <div class="page-actions">@foreach (var d in new[] { 7, 30, 90 }) { <a class="btn @(d == days ? "" : "btn-secondary")" asp-action="Impact" asp-route-days="@d">@d hari</a> }</div></div>
+<div class="grid grid-3 kpis">
+    <div class="kpi good"><div class="row-between"><span class="k-label">Terjual</span><span class="k-ico">@UiIcons.Svg("receipt", 20)</span></div><div class="k-value">@Rupiah.Number(Model.SoldQtyBase, 0)</div><div class="k-note">item senilai @Rupiah.Format(Model.SoldValue)</div></div>
+    <div class="kpi tag"><div class="row-between"><span class="k-label">Tersalurkan (promo/paket)</span><span class="k-ico">@UiIcons.Svg("badge-percent", 20)</span></div><div class="k-value">@Rupiah.Number(Model.RescuedQtyBase, 0)</div><div class="k-note">item senilai @Rupiah.Format(Model.RescuedValue); pembeli hemat @Rupiah.Format(Model.RescuedSavings)</div></div>
+    <div class="kpi @(Model.WastedQtyBase > 0 ? "danger" : "good")"><div class="row-between"><span class="k-label">Terbuang (kedaluwarsa)</span><span class="k-ico">@UiIcons.Svg("leaf", 20)</span></div><div class="k-value">@Rupiah.Number(Model.WastedQtyBase, 0)</div><div class="k-note">kerugian modal @Rupiah.Format(Model.WastedCostValue)</div></div>
+    <div class="kpi"><div class="row-between"><span class="k-label">Tingkat terbuang</span><span class="k-ico">@UiIcons.Svg("chart-column", 20)</span></div><div class="k-value">@Model.WasteRatePercent.ToString("0.#")%</div><div class="k-note">terbuang / (terjual + terbuang)</div></div>
+    <div class="kpi @(Model.AtRiskQtyBase > 0 ? "warn" : "")"><div class="row-between"><span class="k-label">Berisiko 7 hari ke depan</span><span class="k-ico">@UiIcons.Svg("triangle-alert", 20)</span></div><div class="k-value">@Rupiah.Number(Model.AtRiskQtyBase, 0)</div><div class="k-note">item, modal @Rupiah.Format(Model.AtRiskCostValue)</div></div>
+    <div class="kpi"><div class="row-between"><span class="k-label">Dibuang sebelum kedaluwarsa/lainnya</span><span class="k-ico">@UiIcons.Svg("package-x", 20)</span></div><div class="k-value">@Rupiah.Number(Model.OtherDisposedQtyBase, 0)</div><div class="k-note">modal @Rupiah.Format(Model.OtherDisposedCostValue)</div></div>
+</div>
+@if (Model.TopWasted.Count > 0)
+{
+    <div class="card mt-2"><h2>Produk terbuang terbanyak</h2><ul>@foreach (var p in Model.TopWasted) { <li><b>@p.ProductName</b> &mdash; @Rupiah.Number(p.WastedQtyBase, 0) item, kerugian @Rupiah.Format(p.CostValue)</li> }</ul></div>
+}

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Platform.Web</RootNamespace>
+    <UserSecretsId>b7e2a9d4-6c1f-4e58-9a3b-2f0d5c8e7a11</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Provider EF Core 10 untuk MySQL/MariaDB; SQLite dan PostgreSQL tetap tersedia sebagai alternatif. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
+    <PackageReference Include="Microting.EntityFrameworkCore.MySql" Version="10.0.13" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.*" />
+  </ItemGroup>
+
+</Project>

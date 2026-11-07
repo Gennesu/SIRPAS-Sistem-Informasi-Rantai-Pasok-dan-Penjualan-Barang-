@@ -1,0 +1,188 @@
+// Probe BASELINE: mengukur perilaku KODE V2 ASLI (tanpa perubahan V3) di bawah konkurensi nyata (file SQLite, beberapa koneksi).
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Platform.Tests.TestSupport;
+using Platform.Web.Data;
+using Platform.Web.Modules.BusinessProfile.Contracts;
+using Platform.Web.Modules.BusinessProfile.Domain;
+using Platform.Web.Modules.Catalog.Contracts;
+using Platform.Web.Modules.Delivery.Contracts;
+using Platform.Web.Modules.Orders.Contracts;
+using Platform.Web.Modules.Purchasing.Contracts;
+using Platform.Web.Modules.Sales.Contracts;
+using Platform.Web.Modules.Stock.Contracts;
+using Platform.Web.Modules.Stock.Domain;
+using Platform.Web.SharedKernel;
+
+namespace Platform.Tests.Probe;
+
+public sealed class V2Probe : IDisposable
+{
+    private readonly string _dir = Path.Combine(Path.GetTempPath(), "v2probe-" + Guid.NewGuid().ToString("N"));
+    private DbContextOptions<AppDbContext> NewDb(string name)
+    {
+        Directory.CreateDirectory(_dir);
+        var o = new DbContextOptionsBuilder<AppDbContext>().UseSqlite($"Data Source={Path.Combine(_dir, name)}").Options;
+        using var db = new AppDbContext(o, new FakeBusinessContext());
+        db.Database.EnsureCreated();
+        return o;
+    }
+    public void Dispose() { SqliteConnection.ClearAllPools(); try { Directory.Delete(_dir, true); } catch { } }
+
+    private static ModuleServices Open(DbContextOptions<AppDbContext> o, FakeBusinessContext c) => new(o, c, TimeProvider.System);
+
+    private static async Task<(FakeBusinessContext Ctx, int BusinessId, int UserId)> RegisterAsync(DbContextOptions<AppDbContext> o, string email, MarketRole role, double lat, double lon)
+    {
+        using var anon = Open(o, new FakeBusinessContext());
+        var reg = await anon.Businesses.RegisterAsync(new RegisterBusinessRequest("Pemilik", email, "Rahasia123", "Usaha " + email, 1, role, "Jl. Uji No. 1, Bandung", lat, lon, "081200000001"));
+        Assert.True(reg.Succeeded, reg.Error);
+        var admin = new FakeBusinessContext(); admin.AsAdmin(900);
+        using var a = Open(o, admin);
+        Assert.True((await a.Businesses.SetVerificationAsync(reg.Value!.BusinessId!.Value, VerificationStatus.Verified, null)).Succeeded);
+        var ctx = new FakeBusinessContext();
+        if (role == MarketRole.Wholesale) ctx.AsGrossier(reg.Value.BusinessId!.Value, reg.Value.UserId); else ctx.AsRetail(reg.Value.BusinessId!.Value, reg.Value.UserId);
+        return (ctx, reg.Value.BusinessId!.Value, reg.Value.UserId);
+    }
+
+    private static async Task Race(params Func<Task>[] work)
+    {
+        ThreadPool.SetMinThreads(32, 32);
+        using var gate = new ManualResetEventSlim(false);
+        var tasks = work.Select(w => Task.Run(async () => { gate.Wait(); await w(); })).ToArray();
+        await Task.Delay(50); gate.Set();
+        await Task.WhenAll(tasks);
+    }
+
+    [Fact]
+    public async Task Probe_V2_pos_race_stok10_dua_penjualan_7()
+    {
+        int bothOk = 0, oneOk = 0, noneOk = 0, minus = 0, mismatch = 0; var errs = new HashSet<string>();
+        for (var trial = 0; trial < 20; trial++)
+        {
+            var o = NewDb($"pos{trial}.db");
+            var (ctx, bid, _) = await RegisterAsync(o, $"w{trial}@uji.test", MarketRole.Retail, -6.9175, 107.6191);
+            int productId;
+            using (var s = Open(o, ctx))
+            {
+                var p = await s.Products.CreateAsync(new SaveProductRequest("Susu", "SUS", 1, null, "Kotak", 3_300m, new[] { new UnitInput("Dus", 10, 30_000m) }));
+                productId = p.Value!.Id;
+                Assert.True((await s.Purchasing.RecordAsync(new RecordPurchaseRequest("Distributor", null, null, new[] { new PurchaseLineInput(productId, "Dus", 1, 30_000m, null) }))).Succeeded);
+                Assert.True((await s.Inventory.UpdateSettingsAsync(productId, 5_000m, 0)).Succeeded);
+            }
+            Result<SaleReceiptDto>? r1 = null, r2 = null;
+            await Race(
+                async () => { using var s = Open(o, ctx); r1 = await s.Sales.ConfirmAsync(new ConfirmSaleRequest(new[] { new SaleLineInput(productId, 7) }, "CASH", Guid.NewGuid().ToString("N"), null)); },
+                async () => { using var s = Open(o, ctx); r2 = await s.Sales.ConfirmAsync(new ConfirmSaleRequest(new[] { new SaleLineInput(productId, 7) }, "CASH", Guid.NewGuid().ToString("N"), null)); });
+            var ok = (r1!.Succeeded ? 1 : 0) + (r2!.Succeeded ? 1 : 0);
+            if (ok == 2) bothOk++; else if (ok == 1) oneOk++; else noneOk++;
+            foreach (var r in new[] { r1, r2 }) if (!r.Succeeded) errs.Add(r.Error ?? "?");
+            using var v = Open(o, ctx);
+            var inv = await v.Db.Inventories.AsNoTracking().SingleAsync();
+            var sold = await v.Db.SaleItems.AsNoTracking().SumAsync(i => i.QtyBase);
+            if (inv.QtyBase < 0) minus++;
+            if (inv.QtyBase != 10 - sold) mismatch++;
+        }
+        Console.WriteLine($"[V2 POS 10 stok, 2x7, 20 percobaan] keduanya sukses={bothOk}, satu sukses={oneOk}, tak satupun={noneOk}; stok minus={minus}; stok tidak cocok dgn penjualan={mismatch}");
+        foreach (var e in errs) Console.WriteLine("   pesan error pihak yang kalah: " + e);
+    }
+
+    [Fact]
+    public async Task Probe_V2_stockout_standalone_race()
+    {
+        int bothOk = 0, oneOk = 0, mismatch = 0;
+        for (var trial = 0; trial < 20; trial++)
+        {
+            var o = NewDb($"so{trial}.db");
+            var (ctx, _, _) = await RegisterAsync(o, $"s{trial}@uji.test", MarketRole.Retail, -6.9175, 107.6191);
+            int productId;
+            using (var s = Open(o, ctx))
+            {
+                var p = await s.Products.CreateAsync(new SaveProductRequest("Mie", "MIE", 1, null, "Bks", 3_300m, new[] { new UnitInput("Dus", 10, 30_000m) }));
+                productId = p.Value!.Id;
+                Assert.True((await s.Purchasing.RecordAsync(new RecordPurchaseRequest("Distributor", null, null, new[] { new PurchaseLineInput(productId, "Dus", 1, 30_000m, null) }))).Succeeded);
+            }
+            Result<StockOutResult>? a = null, b = null;
+            await Race(
+                async () => { using var s = Open(o, ctx); a = await s.Inventory.StockOutAsync(new StockOutRequest(productId, 7, MovementType.CorrectionOut)); },
+                async () => { using var s = Open(o, ctx); b = await s.Inventory.StockOutAsync(new StockOutRequest(productId, 7, MovementType.CorrectionOut)); });
+            var ok = (a!.Succeeded ? 1 : 0) + (b!.Succeeded ? 1 : 0);
+            if (ok == 2) bothOk++; else if (ok == 1) oneOk++;
+            using var v = Open(o, ctx);
+            var inv = await v.Db.Inventories.AsNoTracking().SingleAsync();
+            var moved = await v.Db.InventoryMovements.AsNoTracking().SumAsync(m => m.QtyBaseSigned);
+            if (inv.QtyBase != moved) mismatch++;
+        }
+        Console.WriteLine($"[V2 StockOut langsung, stok 10, 2x7, 20 percobaan] keduanya sukses={bothOk}, satu sukses={oneOk}; saldo Inventory != jumlah movement={mismatch}");
+    }
+
+    [Fact]
+    public async Task Probe_V2_kunci_idempotensi_sama_bersamaan()
+    {
+        int bothOk = 0, oneErr = 0; var errs = new HashSet<string>();
+        for (var trial = 0; trial < 15; trial++)
+        {
+            var o = NewDb($"idem{trial}.db");
+            var (ctx, _, _) = await RegisterAsync(o, $"i{trial}@uji.test", MarketRole.Retail, -6.9175, 107.6191);
+            int productId;
+            using (var s = Open(o, ctx))
+            {
+                var p = await s.Products.CreateAsync(new SaveProductRequest("Teh", "TEH", 1, null, "Kotak", 3_300m, new[] { new UnitInput("Dus", 10, 30_000m) }));
+                productId = p.Value!.Id;
+                Assert.True((await s.Purchasing.RecordAsync(new RecordPurchaseRequest("Distributor", null, null, new[] { new PurchaseLineInput(productId, "Dus", 1, 30_000m, null) }))).Succeeded);
+                Assert.True((await s.Inventory.UpdateSettingsAsync(productId, 5_000m, 0)).Succeeded);
+            }
+            var key = Guid.NewGuid().ToString("N");
+            Result<SaleReceiptDto>? r1 = null, r2 = null;
+            await Race(
+                async () => { using var s = Open(o, ctx); r1 = await s.Sales.ConfirmAsync(new ConfirmSaleRequest(new[] { new SaleLineInput(productId, 2) }, "CASH", key, null)); },
+                async () => { using var s = Open(o, ctx); r2 = await s.Sales.ConfirmAsync(new ConfirmSaleRequest(new[] { new SaleLineInput(productId, 2) }, "CASH", key, null)); });
+            if (r1!.Succeeded && r2!.Succeeded) bothOk++; else { oneErr++; foreach (var r in new[] { r1, r2 }) if (!r.Succeeded) errs.Add(r.Error ?? "?"); }
+        }
+        Console.WriteLine($"[V2 kunci idempotensi POS sama, bersamaan, 15 percobaan] kedua respons sukses (struk sama)={bothOk}, salah satu menerima ERROR={oneErr}");
+        foreach (var e in errs) Console.WriteLine("   pesan error: " + e);
+    }
+
+    [Fact]
+    public async Task Probe_V2_pembelian_dan_pesanan_tanpa_idempotensi_dan_terima_ganda()
+    {
+        var o = NewDb("flow.db");
+        var (seller, sellerId, _) = await RegisterAsync(o, "g@uji.test", MarketRole.Wholesale, -6.9150, 107.6050);
+        var (buyer, buyerId, _) = await RegisterAsync(o, "r@uji.test", MarketRole.Retail, -6.9175, 107.6191);
+        int productId;
+        using (var s = Open(o, seller))
+        {
+            Assert.True((await s.Delivery.SaveMineAsync(new SaveDeliveryRequest(true, true, 8_000m, 0m, null, null, 2_500m, 2m, 12m))).Succeeded);
+            var p = await s.Products.CreateAsync(new SaveProductRequest("Minyak", "MNY", 2, null, "Botol", 15_000m, new[] { new UnitInput("Dus", 12, 150_000m) }));
+            productId = p.Value!.Id;
+            Assert.True((await s.Purchasing.RecordAsync(new RecordPurchaseRequest("Distributor", null, null, new[] { new PurchaseLineInput(productId, "Dus", 20, 140_000m, null) }))).Succeeded);
+        }
+        using (var s = Open(o, seller))
+        {
+            var req = new RecordPurchaseRequest("Distributor", null, null, new[] { new PurchaseLineInput(productId, "Dus", 1, 140_000m, null) });
+            await s.Purchasing.RecordAsync(req); await s.Purchasing.RecordAsync(req);
+            var stock = (await s.Inventory.GetStockAsync()).Single().QtyBase;
+            Console.WriteLine($"[V2 pembelian manual dikirim 2x] stok akhir = {stock} (benar bila hanya 1 pembelian: {21 * 12}; 2 pembelian: {22 * 12})");
+        }
+        int o1, o2;
+        using (var s = Open(o, buyer))
+        {
+            var req = new CreateOrderRequest(sellerId, FulfillmentType.Pickup, null, null, new[] { new OrderLineInput(productId, "Dus", 1) });
+            o1 = (await s.Orders.CreateAsync(req)).Value; o2 = (await s.Orders.CreateAsync(req)).Value;
+            Console.WriteLine($"[V2 checkout dikirim 2x] id pesanan: {o1} dan {o2} => {(o1 != o2 ? "DUA pesanan dibuat" : "satu pesanan")}");
+        }
+        using (var s = Open(o, seller))
+        {
+            foreach (var a in new[] { OrderAction.Accept, OrderAction.Prepare, OrderAction.MarkReady, OrderAction.HandOver }) Assert.True((await s.Orders.ActAsync(o1, a, null)).Succeeded);
+        }
+        Result? c1 = null, c2 = null;
+        await Race(
+            async () => { using var s = Open(o, buyer); c1 = await s.Orders.ActAsync(o1, OrderAction.ConfirmReceived, null); },
+            async () => { using var s = Open(o, buyer); c2 = await s.Orders.ActAsync(o1, OrderAction.ConfirmReceived, null); });
+        using (var s = Open(o, buyer))
+        {
+            var stock = (await s.Inventory.GetStockAsync()).FirstOrDefault()?.QtyBase ?? 0;
+            var purchases = await s.Db.Purchases.AsNoTracking().CountAsync(p => p.OrderId == o1);
+            Console.WriteLine($"[V2 ConfirmReceived serentak 2x] hasil1={(c1!.Succeeded ? "OK" : "GAGAL:" + c1.Error)}, hasil2={(c2!.Succeeded ? "OK" : "GAGAL:" + c2.Error)}; stok warung={stock} (benar=12), jumlah pembelian dari pesanan={purchases} (benar=1)");
+        }
+    }
+}

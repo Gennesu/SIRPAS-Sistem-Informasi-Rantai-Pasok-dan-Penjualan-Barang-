@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 0 0 320 200" role="img" aria-label="Telur ayam segar"><title>Telur ayam segar</title>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbf1dd"/><stop offset="1" stop-color="#efdcb6"/></linearGradient><linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9b77c"/><stop offset="1" stop-color="#b98c4f"/></linearGradient>
+<radialGradient id="e" cx=".36" cy=".3" r=".85"><stop offset="0" stop-color="#fffaf0"/><stop offset=".62" stop-color="#f4dcae"/><stop offset="1" stop-color="#d8b373"/></radialGradient>
+<g id="egg"><path d="M0-27C19-27 23 2 23 13 23 27 12 32 0 32-12 32-23 27-23 13-23 2-19-27 0-27Z" fill="url(#e)" stroke="#c9a46a" stroke-opacity=".45"/><ellipse cx="-8" cy="-9" rx="5" ry="10" fill="#fff" opacity=".6" transform="rotate(-16 -8 -9)"/></g></defs>
+<rect width="320" height="200" fill="url(#bg)"/><circle cx="268" cy="36" r="46" fill="#fff" opacity=".32"/><circle cx="44" cy="170" r="36" fill="#fff" opacity=".22"/>
+<ellipse cx="160" cy="182" rx="110" ry="9" fill="#000" opacity=".14"/><path d="M50 112H270L254 172Q252 180 242 180H78Q68 180 66 172Z" fill="url(#t)"/>
+<use href="#egg" x="104" y="104"/><use href="#egg" x="160" y="100"/><use href="#egg" x="216" y="104"/><use href="#egg" x="76" y="134"/><use href="#egg" x="132" y="136"/><use href="#egg" x="188" y="136"/><use href="#egg" x="244" y="134"/>
+<path d="M58 142H262L254 172Q252 180 242 180H78Q68 180 66 172Z" fill="#c79a5c"/><path d="M58 142H262L260 152H60Z" fill="#dcb97c"/>
+</svg>

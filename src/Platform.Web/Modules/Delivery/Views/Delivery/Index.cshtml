@@ -1,0 +1,92 @@
+@model Platform.Web.Modules.Delivery.ViewModels.DeliverySettingsViewModel
+@using Platform.Web.SharedKernel
+@{
+    ViewData["Title"] = "Pengiriman & ongkir";
+    var isLivestock = User.IsInRole(RoleNames.Livestock);
+    var isRetail = User.IsInRole(RoleNames.Retail);
+    var destination = isLivestock ? "agen" : isRetail ? "pembeli" : "warung";
+    var mapLabel = isLivestock || isRetail ? "Lihat peta agen" : "Lihat peta warung";
+}
+
+<div class="page-head">
+    <div>
+        <h1>Pengiriman &amp; ongkir</h1>
+        <p class="lead">Atur layanan antar atau ambil sendiri, tarif dasar, dan ongkir berdasarkan jarak untuk tujuan pengiriman seperti @(destination).</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-secondary" asp-controller="Map" asp-action="Index">@UiIcons.Svg("map-pin", 18) @mapLabel</a></div>
+</div>
+
+<form asp-controller="Delivery" asp-action="Index" method="post" data-once id="delivery-form">
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+    <div class="split">
+        <div class="stack" style="--gap:18px">
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("hand-coins", 21) Cara terima</h2></div>
+                <div class="stack" style="--gap:12px">
+                    <label class="check"><input asp-for="OffersDelivery" /><span>Antar ke alamat @destination<small>Ongkir dihitung dari jarak usaha Anda ke @destination.</small></span></label>
+                    <label class="check"><input asp-for="OffersPickup" /><span>Ambil sendiri di usaha Anda<small>Tanpa ongkir.</small></span></label>
+                </div>
+                <div class="form-grid mt-2">
+                    <div class="field"><label asp-for="DeliveryInfo"></label><input asp-for="DeliveryInfo" placeholder="mis. Area Bandung, 1 hari kerja" /><span asp-validation-for="DeliveryInfo" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="PickupInfo"></label><input asp-for="PickupInfo" placeholder="mis. Ambil di toko, 08.00–17.00" /><span asp-validation-for="PickupInfo" class="field-validation-error"></span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("route", 21) Ongkir berdasarkan jarak</h2></div>
+                <p class="muted small">Rumus: <b>Ongkir = tarif dasar + (jarak jalan &minus; jarak termasuk) &times; tarif per km</b>, dibulatkan ke atas per Rp500. Jarak jalan diperkirakan 1,3&times; jarak garis lurus. Isi tarif per km 0 bila ingin tarif tetap.</p>
+                <div class="form-grid">
+                    <div class="field"><label asp-for="DeliveryFee"></label><div class="input-group"><span class="addon">Rp</span><input asp-for="DeliveryFee" inputmode="decimal" /></div><span asp-validation-for="DeliveryFee" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="FreeKm"></label><div class="input-group"><input asp-for="FreeKm" inputmode="decimal" class="has-end" /><span class="addon end">km</span></div><span class="hint">Jarak yang sudah tercakup tarif dasar.</span><span asp-validation-for="FreeKm" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="FeePerKm"></label><div class="input-group"><span class="addon">Rp</span><input asp-for="FeePerKm" inputmode="decimal" /></div><span class="hint">Tambahan untuk setiap km di atas jarak termasuk.</span><span asp-validation-for="FeePerKm" class="field-validation-error"></span></div>
+                    <div class="field"><label asp-for="MaxDistanceKm"></label><div class="input-group"><input asp-for="MaxDistanceKm" inputmode="decimal" class="has-end" placeholder="tanpa batas" /><span class="addon end">km</span></div><span class="hint">Di atas jarak ini warung hanya bisa ambil sendiri. Kosongkan bila tanpa batas.</span><span asp-validation-for="MaxDistanceKm" class="field-validation-error"></span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h2>@UiIcons.Svg("scale", 21) Minimal pesanan</h2></div>
+                <div class="field" style="max-width:340px"><label asp-for="MinOrderAmount"></label><div class="input-group"><span class="addon">Rp</span><input asp-for="MinOrderAmount" inputmode="decimal" /></div><span class="hint">Berlaku untuk barang biasa. Paket anti-mubazir tidak dikenai minimal agar stok hampir kadaluarsa mudah terjual.</span><span asp-validation-for="MinOrderAmount" class="field-validation-error"></span></div>
+            </div>
+        </div>
+
+        <div class="stack" style="--gap:18px">
+            <div class="card order-box">
+                <div class="card-head"><h2>@UiIcons.Svg("calculator", 21) Simulasi ongkir</h2></div>
+                <p class="muted small" id="sim-formula">&nbsp;</p>
+                <table class="fee-table">
+                    <thead><tr><th>Jarak jalan</th><th>Garis lurus</th><th class="right">Ongkir</th></tr></thead>
+                    <tbody id="sim-body"></tbody>
+                </table>
+                <p class="hint mt-1 mb-0">Angka berubah langsung saat Anda mengisi tarif di samping. Tujuan tanpa titik lokasi dikenai tarif dasar.</p>
+                <button type="submit" class="btn btn-lg btn-block mt-2">@UiIcons.Svg("check", 20) Simpan pengaturan</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+    (function () {
+      var f = document.getElementById('delivery-form'); if (!f) return;
+      function val(name) { var el = f.querySelector('[name="' + name + '"]'); var v = parseFloat(String(el && el.value || '').replace(',', '.')); return isFinite(v) ? v : 0; }
+      function has(name) { var el = f.querySelector('[name="' + name + '"]'); return el && String(el.value).trim() !== ''; }
+      function render() {
+        var base = val('DeliveryFee'), free = val('FreeKm'), per = val('FeePerKm'), max = has('MaxDistanceKm') ? val('MaxDistanceKm') : 0;
+        var delivers = f.querySelector('[name="OffersDelivery"][type=checkbox]').checked;
+        var rows = [1, 2, 3, 5, 8, 10, 15, 20], html = '';
+        rows.forEach(function (km) {
+          var cell;
+          if (!delivers) cell = '<span class="muted">Tidak diantar</span>';
+          else if (max > 0 && km > max) cell = '<span class="badge badge-danger">Di luar jangkauan</span>';
+          else cell = '<b>' + fmtRp(Math.ceil((base + Math.max(0, km - free) * per) / 500) * 500) + '</b>';
+          html += '<tr><td>' + km + ' km</td><td class="muted">±' + (km / 1.3).toFixed(1).replace('.', ',') + ' km</td><td class="right">' + cell + '</td></tr>';
+        });
+        document.getElementById('sim-body').innerHTML = html;
+        document.getElementById('sim-formula').textContent = per > 0
+          ? 'Ongkir = ' + fmtRp(base) + ' + (jarak − ' + free + ' km) × ' + fmtRp(per) + ', dibulatkan ke atas per Rp500' + (max > 0 ? ', maksimal ' + max + ' km.' : '.')
+          : 'Tarif tetap ' + fmtRp(base) + ' untuk semua jarak' + (max > 0 ? ' sampai ' + max + ' km.' : '.');
+      }
+      f.addEventListener('input', render); f.addEventListener('change', render); render();
+    })();
+    </script>
+}

@@ -1,0 +1,164 @@
+@model Platform.Web.Modules.Rescue.Contracts.RescueDashboardDto
+@using Platform.Web.Modules.Stock.Contracts
+@{
+    ViewData["Title"] = "Dashboard food waste";
+    var e = Model.Expiry;
+    var total = Math.Max(1, e.Expired.Batches + e.Critical.Batches + e.Soon.Batches + e.Watch.Batches + e.Safe.Batches);
+    var hasBatches = e.Expired.Batches + e.Critical.Batches + e.Soon.Batches + e.Watch.Batches + e.Safe.Batches > 0;
+    var s = Model.Stats;
+}
+
+<div class="rescue-hero mt-2">
+    <div>
+        <span class="badge badge-tag">@UiIcons.Svg("leaf", 14) Anti-mubazir</span>
+        <h1 class="mt-1">Dashboard food waste</h1>
+        <p>Pantau barang yang mendekati kadaluarsa, lihat warung mana yang paling laku menjualnya, lalu kirim penawaran berharga khusus sebelum barang terbuang.</p>
+        <div class="row mt-2">
+            <a class="btn btn-tag" asp-action="Compose">@UiIcons.Svg("plus", 18) Buat paket</a>
+            <a class="btn btn-secondary" asp-action="Bundles">@UiIcons.Svg("gift", 18) Paket &amp; penawaran</a>
+        </div>
+    </div>
+    <div class="r-stats">
+        <div class="r-stat"><b>@Rupiah.Format(e.ValueAtRisk)</b><span>modal barang &le; 30 hari</span></div>
+        <div class="r-stat"><b>@Rupiah.Number(e.UnitsAtRisk, 0)</b><span>item berisiko</span></div>
+        <div class="r-stat"><b>@(s.RescueRatePercent is int pct ? pct + "%" : "—")</b><span>terselamatkan (30 hari)</span></div>
+    </div>
+</div>
+
+<div class="grid grid-4 kpis mt-2">
+    <div class="kpi"><div class="row-between"><span class="k-label">Paket aktif</span><span class="k-ico">@UiIcons.Svg("gift", 20)</span></div><div class="k-value">@s.ActiveBundles</div><div class="k-note">Tayang atau khusus penawaran.</div></div>
+    <div class="kpi blue"><div class="row-between"><span class="k-label">Penawaran terbuka</span><span class="k-ico">@UiIcons.Svg("send", 20)</span></div><div class="k-value">@s.OpenOffers</div><div class="k-note">@s.AcceptedOffers30d diambil dalam 30 hari.</div></div>
+    <div class="kpi good"><div class="row-between"><span class="k-label">Diselamatkan (30 hari)</span><span class="k-ico">@UiIcons.Svg("heart-handshake", 20)</span></div><div class="k-value">@Rupiah.Format(s.RescuedRevenue30d)</div><div class="k-note">@Rupiah.Number(s.RescuedUnits30d, 0) item terjual, warung hemat @Rupiah.Format(s.BuyerSavings30d).</div></div>
+    <div class="kpi @(s.WrittenOffUnits30d > 0 ? "danger" : "")"><div class="row-between"><span class="k-label">Terbuang (30 hari)</span><span class="k-ico">@UiIcons.Svg("trash-2", 20)</span></div><div class="k-value">@Rupiah.Format(s.WrittenOffValue30d)</div><div class="k-note">@Rupiah.Number(s.WrittenOffUnits30d, 0) item kadaluarsa dibuang.</div></div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-head"><h2>@UiIcons.Svg("clock", 21) Sebaran stok menurut masa kadaluarsa</h2></div>
+    @if (!hasBatches)
+    {
+        <div class="empty"><div class="e-ico">@UiIcons.Svg("calendar", 30)</div><h3>Belum ada tanggal kadaluarsa tercatat</h3><p>Isi tanggal kadaluarsa saat mencatat stok masuk, atau tandai stok yang sudah ada lewat menu Stok.</p><a class="btn" asp-controller="Purchases" asp-action="Create">Catat stok masuk</a></div>
+    }
+    else
+    {
+        <div class="stack-bar" role="img" aria-label="Sebaran batch menurut masa kadaluarsa">
+            <i class="s-expired" style="width:@(e.Expired.Batches * 100 / total)%"></i>
+            <i class="s-critical" style="width:@(e.Critical.Batches * 100 / total)%"></i>
+            <i class="s-soon" style="width:@(e.Soon.Batches * 100 / total)%"></i>
+            <i class="s-watch" style="width:@(e.Watch.Batches * 100 / total)%"></i>
+            <i class="s-safe" style="width:@(e.Safe.Batches * 100 / total)%"></i>
+        </div>
+        <div class="band-legend">
+            <div class="bl band-expired"><div><b>@e.Expired.Batches</b><span>Lewat tanggal</span><small>@Rupiah.Number(e.Expired.QtyBase, 0) item · @Rupiah.Format(e.Expired.ValueAtCost)</small></div></div>
+            <div class="bl band-critical"><div><b>@e.Critical.Batches</b><span>0 – 7 hari</span><small>@Rupiah.Number(e.Critical.QtyBase, 0) item · @Rupiah.Format(e.Critical.ValueAtCost)</small></div></div>
+            <div class="bl band-soon"><div><b>@e.Soon.Batches</b><span>8 – 14 hari</span><small>@Rupiah.Number(e.Soon.QtyBase, 0) item · @Rupiah.Format(e.Soon.ValueAtCost)</small></div></div>
+            <div class="bl band-watch"><div><b>@e.Watch.Batches</b><span>15 – 30 hari</span><small>@Rupiah.Number(e.Watch.QtyBase, 0) item · @Rupiah.Format(e.Watch.ValueAtCost)</small></div></div>
+            <div class="bl band-safe"><div><b>@e.Safe.Batches</b><span>Aman (&gt; 30 hari)</span><small>@Rupiah.Format(e.Safe.ValueAtCost)</small></div></div>
+        </div>
+    }
+</div>
+
+<div class="section-title"><span>@UiIcons.Svg("flame", 22)</span><h2>Selamatkan sekarang</h2><span class="muted small">diurutkan dari yang paling mendesak</span></div>
+@if (Model.Candidates.Count == 0)
+{
+    <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("circle-check", 30)</div><h3>Tidak ada batch yang mendekati kadaluarsa</h3><p>Semua stok bertanggal masih lebih dari 30 hari. Dashboard ini akan menampilkan rekomendasi saat ada batch yang perlu diselamatkan.</p></div></div>
+}
+<div class="stack" style="--gap:16px">
+@foreach (var c in Model.Candidates)
+{
+    var b = c.Batch;
+    var band = b.Band.ToString().ToLowerInvariant();
+    <article class="cand">
+        <span class="daytag band-@band"><b>@b.DaysLeft</b><span>hari</span></span>
+        <div>
+            <div class="cand-head">
+                <div>
+                    <h3>@b.ProductName</h3>
+                    <div class="c-meta">
+                        <span>Kadaluarsa <b>@IdFormat.Date(b.ExpiryDate)</b></span>
+                        <span>Sisa <b>@Rupiah.Number(b.QtyBase, 0) @b.BaseUnitName</b> (@b.QtyBreakdown)</span>
+                        <span>Modal <b>@Rupiah.Format(b.ValueAtCost)</b></span>
+                        @if (b.NormalPriceBase is decimal np) { <span>Harga normal <b>@Rupiah.Format(np)</b>/@b.BaseUnitName</span> }
+                    </div>
+                </div>
+                <div class="row">
+                    @if (c.ActiveBundleId is int bid)
+                    {
+                        <span class="badge badge-ok">@UiIcons.Svg("gift", 13) Sudah ada paket</span>
+                        <a class="btn btn-sm btn-secondary" asp-action="Bundles">Lihat paket</a>
+                    }
+                    <a class="btn btn-sm btn-tag" asp-action="Compose" asp-route-batchId="@b.BatchId">@UiIcons.Svg("gift", 16) Buat paket</a>
+                </div>
+            </div>
+            <div class="row mt-1">
+                <span class="badge badge-tag">Saran diskon @c.SuggestedDiscountPercent%</span>
+                @if (c.SuggestedUnitPrice is decimal sp) { <span class="muted small">menjadi sekitar <b>@Rupiah.Format(sp)</b> per @b.BaseUnitName</span> }
+            </div>
+
+            <div class="targets">
+                <h4>@UiIcons.Svg("chart-column", 14) Warung yang cocok ditawari (penjualan 30 hari)</h4>
+                @if (c.Targets.Count == 0)
+                {
+                    <p class="muted small mb-0">Belum ada warung langganan yang menjual produk ini dan membagikan data penjualannya, atau stok mereka masih cukup sampai tanggal kadaluarsa. Tayangkan sebagai paket publik di marketplace.</p>
+                }
+                @{ var rank = 0; }
+                @foreach (var t in c.Targets)
+                {
+                    rank++;
+                    <div class="target">
+                        <span class="t-rank">@rank</span>
+                        <div>
+                            <b>@t.Name</b>
+                            <small>
+                                Terjual <b>@t.SoldQtyBase</b> @b.BaseUnitName (@t.AvgPerDay.ToString("0.0")/hari) · stok warung @t.StockAtWarungBase@(t.DaysOfCover is double doc ? $" (cukup {doc:0} hari)" : "")@(t.DistanceKm is double dk ? $" · {dk:0.0} km" : "")
+                                · disarankan <b>@t.SuggestedQtyBase @b.BaseUnitName</b>
+                            </small>
+                        </div>
+                        @if (t.HasOpenOffer)
+                        {
+                            <span class="badge badge-info">@UiIcons.Svg("send", 13) Sudah ditawari</span>
+                        }
+                        else
+                        {
+                            <a class="btn btn-sm" asp-action="Compose" asp-route-batchId="@b.BatchId" asp-route-to="@t.BusinessId">@UiIcons.Svg("send", 16) Tawarkan</a>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </article>
+}
+</div>
+
+@if (Model.Expired.Count > 0)
+{
+    <div class="section-title" id="kadaluarsa"><span>@UiIcons.Svg("triangle-alert", 22)</span><h2>Sudah lewat tanggal kadaluarsa</h2></div>
+    <div class="card">
+        <div class="alert alert-error">@UiIcons.Svg("triangle-alert", 20)<div class="grow"><b>Jangan dijual.</b> Keluarkan barang ini dari stok agar tidak terkirim ke warung. Nilainya tercatat sebagai kerugian kadaluarsa.</div></div>
+        <div class="table-wrap">
+            <table class="table table-stack">
+                <thead><tr><th>Produk</th><th>Kadaluarsa</th><th class="right">Sisa</th><th class="right">Modal</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var b in Model.Expired)
+                {
+                    <tr>
+                        <td class="cell-title"><span class="name">@b.ProductName</span><span class="sub">@b.SourceRef</span></td>
+                        <td data-label="Kadaluarsa"><span class="pill-band band-expired">@ExpiryBands.DaysText(b.DaysLeft)</span> <span class="small muted">@IdFormat.Date(b.ExpiryDate)</span></td>
+                        <td class="right" data-label="Sisa">@b.QtyBase @b.BaseUnitName</td>
+                        <td class="right" data-label="Modal">@Rupiah.Format(b.ValueAtCost)</td>
+                        <td class="right cell-actions">
+                            <form asp-action="WriteOff" asp-route-batchId="@b.BatchId" method="post" class="inline">
+                                <button class="btn btn-sm btn-danger" type="submit" data-confirm="Keluarkan @b.QtyBase @b.BaseUnitName @b.ProductName dari stok? Tindakan ini dicatat sebagai barang kadaluarsa." data-confirm-title="Buang barang kadaluarsa" data-confirm-ok="Ya, keluarkan" data-confirm-danger>@UiIcons.Svg("trash-2", 16) Keluarkan dari stok</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (Model.HiddenCustomers > 0)
+{
+    <div class="alert alert-info mt-2">@UiIcons.Svg("shield-check", 20)<div class="grow">@Model.HiddenCustomers warung langganan tidak membagikan ringkasan penjualan, jadi tidak muncul di rekomendasi. Hormati pilihan mereka; Anda tetap bisa menayangkan paket publik di marketplace.</div></div>
+}

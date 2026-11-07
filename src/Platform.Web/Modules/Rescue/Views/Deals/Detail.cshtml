@@ -1,0 +1,151 @@
+@model Platform.Web.Modules.Rescue.ViewModels.DealDetailViewModel
+@using Platform.Web.Modules.Rescue.Contracts
+@using Platform.Web.Modules.Stock.Contracts
+@{
+    var b = Model.Bundle;
+    var seller = b.Seller!;
+    ViewData["Title"] = b.Title;
+    ViewData["Nav"] = "Deals/Index";
+    var orderable = b.State == BundleState.Active && b.Available > 0;
+    var band = ExpiryBands.Of(b.EarliestExpiryDays).ToString().ToLowerInvariant();
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+
+<div class="crumbs"><a asp-action="Index">Promo &amp; penawaran</a> @UiIcons.Svg("chevron-right", 14) <span>@b.Title</span></div>
+<div class="page-head">
+    <div>
+        <h1>@b.Title</h1>
+        <p class="lead">@(string.IsNullOrEmpty(b.Description) ? "Paket barang mendekati kadaluarsa dengan harga khusus. Stok terbatas." : b.Description)</p>
+    </div>
+    <span class="badge @(orderable ? "badge-ok" : "badge-muted")" style="font-size:.9rem">@RescueLabels.Bundle(b.State)</span>
+</div>
+
+@if (Model.Offer is { State: OfferState.Sent } offer)
+{
+    <div class="alert alert-tag">@UiIcons.Svg("send", 20)<div class="grow"><b>Penawaran khusus dari @offer.SellerName.</b> @(string.IsNullOrEmpty(offer.Message) ? "" : "“" + offer.Message + "” ")Disarankan @offer.SuggestedBundles paket. Berlaku sampai @IdFormat.Stamp(offer.ExpiresAt).</div></div>
+}
+
+<div class="split">
+    <div class="stack" style="--gap:18px">
+        <div class="card">
+            <div class="card-head"><h2>@UiIcons.Svg("package", 21) Isi paket</h2><span class="daytag sm band-@band"><b>@Math.Max(b.EarliestExpiryDays, 0)</b><span>hari</span></span></div>
+            <div class="table-wrap">
+                <table class="table table-stack">
+                    <thead><tr><th>Barang</th><th class="right">Jumlah per paket</th><th>Kadaluarsa</th><th class="right">Harga normal</th></tr></thead>
+                    <tbody>
+                    @foreach (var i in b.Items)
+                    {
+                        <tr>
+                            <td class="cell-title"><span class="name">@i.ProductName</span></td>
+                            <td class="right" data-label="Jumlah">@i.QtyBase @i.BaseUnitName</td>
+                            <td data-label="Kadaluarsa"><span class="pill-band band-@ExpiryBands.Of(i.DaysLeft).ToString().ToLowerInvariant()">@ExpiryBands.DaysText(i.DaysLeft)</span> <span class="muted small">@IdFormat.DateShort(i.ExpiryDate)</span></td>
+                            <td class="right" data-label="Harga normal">@Rupiah.Format(Money.Round(i.NormalUnitPriceBase * i.QtyBase))</td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot><tr><td colspan="3">Harga normal satu paket</td><td class="right">@Rupiah.Format(b.NormalPrice)</td></tr></tfoot>
+                </table>
+            </div>
+            <div class="alert alert-info mt-2 mb-0">@UiIcons.Svg("info", 18)<div class="grow">Tanggal kadaluarsa ikut tercatat di stok warung Anda dan dashboard kadaluarsa akan memantaunya. Pesanan paket tidak dikenai minimal pesanan.</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h2>@UiIcons.Svg("store", 21) Grosir</h2></div>
+            <div class="row-between">
+                <div><b>@seller.Name</b><div class="muted small">@seller.Address</div></div>
+                <div class="row">
+                    @if (seller.DistanceKm is double dk) { <span class="badge">@UiIcons.Svg("map-pin", 13) @dk.ToString("0.0") km</span> }
+                    <a class="btn btn-sm btn-secondary" asp-controller="Marketplace" asp-action="Wholesaler" asp-route-id="@seller.BusinessId">Lihat katalog</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="order-box">
+        <form asp-action="Order" method="post" class="card" id="deal-form" data-once
+              data-price="@b.Price.ToString(inv)" data-normal="@b.NormalPrice.ToString(inv)" data-fee="@seller.DeliveryFee.ToString(inv)" data-available="@b.Available">
+            <input type="hidden" name="BundleId" value="@b.Id" />
+            <input type="hidden" name="OfferId" value="@Model.Offer?.Id" />
+            <div class="card-head"><h2>Pesan paket</h2></div>
+            <div class="row" style="gap:10px;align-items:flex-end;margin-bottom:6px">
+                <div class="price-new">@Rupiah.Format(b.Price)</div>
+                <div class="price-old" style="padding-bottom:4px">@Rupiah.Format(b.NormalPrice)</div>
+                <span class="badge badge-danger" style="margin-bottom:4px">-@b.DiscountPercent%</span>
+            </div>
+            <p class="muted small">per paket · tersisa <b>@b.Available</b> paket</p>
+
+            @if (!orderable)
+            {
+                <div class="alert alert-warn mb-0">@UiIcons.Svg("info", 18)<div class="grow">Paket ini sudah tidak tersedia (@RescueLabels.Bundle(b.State).ToLowerInvariant()).</div></div>
+            }
+            else
+            {
+                <div class="field">
+                    <label for="qty">Jumlah paket</label>
+                    <div class="qty">
+                        <button type="button" data-step="-1" aria-label="Kurangi">&minus;</button>
+                        <input type="number" id="qty" name="Qty" value="@Model.SuggestedQty" min="1" max="@b.Available" inputmode="numeric" />
+                        <button type="button" data-step="1" aria-label="Tambah">+</button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="label">Cara terima</span>
+                    <div class="stack" style="--gap:8px">
+                        <label class="item-pick" style="grid-template-columns:auto 1fr auto">
+                            <input type="radio" name="Fulfillment" value="Pickup" checked />
+                            <span><b>Ambil sendiri</b><span class="muted small" style="display:block">Ambil di toko grosir, tanpa ongkir.</span></span>
+                            <b>Gratis</b>
+                        </label>
+                        <label class="item-pick @(seller.OffersDelivery ? "" : "disabled")" style="grid-template-columns:auto 1fr auto;@(seller.OffersDelivery ? "" : "opacity:.55")">
+                            <input type="radio" name="Fulfillment" value="Delivery" @(seller.OffersDelivery ? "" : "disabled") />
+                            <span><b>Diantar grosir</b><span class="muted small" style="display:block">@(seller.OffersDelivery ? $"Sekitar {(seller.RoadKm is double rk ? rk.ToString("0.0") : "?")} km dari toko." : (seller.DeliveryNote ?? "Tidak tersedia."))</span></span>
+                            <b>@(seller.OffersDelivery ? Rupiah.Format(seller.DeliveryFee) : "—")</b>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field hide" id="address-field">
+                    <label for="addr">Alamat pengiriman</label>
+                    <textarea id="addr" name="DeliveryAddress" rows="2" maxlength="300">@Model.BuyerAddress</textarea>
+                </div>
+                <div class="field"><label for="note">Catatan untuk grosir (opsional)</label><input type="text" id="note" name="Note" maxlength="200" placeholder="Mis. tolong dikemas rapi" /></div>
+
+                <hr class="divider-dash" />
+                <dl class="kv">
+                    <dt>Subtotal</dt><dd id="t-sub">@Rupiah.Format(b.Price)</dd>
+                    <dt>Ongkir</dt><dd id="t-fee">Rp0</dd>
+                    <dt style="color:var(--ink);font-weight:800">Total</dt><dd id="t-total" style="font-size:1.3rem" class="display">@Rupiah.Format(b.Price)</dd>
+                </dl>
+                <div class="alert alert-ok mt-1" style="margin-bottom:0">@UiIcons.Svg("heart-handshake", 18)<div class="grow">Anda hemat <b id="t-save">@Rupiah.Format(b.Savings)</b> dibanding harga normal.</div></div>
+                <button type="submit" class="btn btn-lg btn-tag btn-block mt-2">@UiIcons.Svg("shopping-cart", 20) Pesan paket</button>
+                <p class="hint center mt-1 mb-0">Pembayaran diatur langsung dengan grosir.</p>
+            }
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+    (function () {
+      var f = document.getElementById('deal-form'); if (!f) return;
+      var price = parseFloat(f.dataset.price), normal = parseFloat(f.dataset.normal), fee = parseFloat(f.dataset.fee), avail = parseInt(f.dataset.available, 10);
+      var qty = document.getElementById('qty'); if (!qty) return;
+      function calc() {
+        var q = Math.max(1, Math.min(avail, parseInt(qty.value, 10) || 1));
+        var delivery = f.querySelector('input[name=Fulfillment][value=Delivery]');
+        var useFee = delivery && delivery.checked ? fee : 0;
+        document.getElementById('t-sub').textContent = fmtRp(price * q);
+        document.getElementById('t-fee').textContent = fmtRp(useFee);
+        document.getElementById('t-total').textContent = fmtRp(price * q + useFee);
+        document.getElementById('t-save').textContent = fmtRp((normal - price) * q);
+        document.getElementById('address-field').classList.toggle('hide', !(delivery && delivery.checked));
+      }
+      f.addEventListener('click', function (e) {
+        var s = e.target.closest('[data-step]'); if (!s) return;
+        qty.value = Math.max(1, Math.min(avail, (parseInt(qty.value, 10) || 1) + parseInt(s.dataset.step, 10))); calc();
+      });
+      f.addEventListener('input', calc); f.addEventListener('change', calc); calc();
+    })();
+    </script>
+}

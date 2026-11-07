@@ -1,0 +1,20 @@
+@model Platform.Web.SharedKernel.LocationPickerModel
+@* Pemilih lokasi: pin tetap di tengah, geser peta. Wajib memuat leaflet + map-core.js + location-picker.js (lihat _MapScripts). *@
+<div class="picker" data-picker data-lat="@Model.LatField" data-lon="@Model.LonField" data-address="@Model.AddressField">
+    <div class="picker-map map-el"></div>
+    <svg class="pin-center" viewBox="0 0 44 56" aria-hidden="true"><path d="M22 2C11.5 2 3 10.3 3 20.6c0 14.2 19 33.4 19 33.4s19-19.2 19-33.4C41 10.3 32.5 2 22 2z" fill="#5a2c10" stroke="#fff" stroke-width="3"/><circle cx="22" cy="20.6" r="7" fill="#ffc933"/></svg>
+    <span class="pin-shadow"></span>
+    <div class="picker-hud">
+        <div class="search-box">
+            @UiIcons.Svg("search", 18)
+            <input type="search" data-search placeholder="Cari alamat, jalan, atau nama tempat" autocomplete="off" aria-label="Cari alamat" />
+        </div>
+        <div class="results" role="listbox"></div>
+        <div><button type="button" class="hud-btn" data-locate>@UiIcons.Svg("locate-fixed", 17) Gunakan lokasi saya</button></div>
+    </div>
+    <div class="addr">
+        @UiIcons.Svg("map-pin", 18)
+        <span class="grow" data-addr-label>Geser peta sampai pin tepat di lokasi usaha.</span>
+        <button type="button" class="btn btn-sm hide" data-use-point>Pakai titik ini</button>
+    </div>
+</div>

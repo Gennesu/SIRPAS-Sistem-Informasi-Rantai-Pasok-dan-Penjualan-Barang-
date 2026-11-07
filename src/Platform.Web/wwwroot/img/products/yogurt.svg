@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Yogurt drink 150 ml">
+<title>Yogurt drink 150 ml</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdeaf3"/><stop offset="1" stop-color="#f8cfe2"/></linearGradient>
+<linearGradient id="sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<rect width="320" height="200" fill="url(#bg)"/>
+<circle cx="270" cy="36" r="46" fill="#fff" opacity=".3"/>
+<circle cx="48" cy="170" r="36" fill="#fff" opacity=".22"/>
+<ellipse cx="160" cy="181" rx="78" ry="8" fill="#000" opacity=".13"/>
+<clipPath id="bt"><path d="M131.0 162 Q131.0 174 143.0 174 L177.0 174 Q189.0 174 189.0 162 L189.0 96 Q189.0 82 180 72 L173 58 L173 40 L147 40 L147 58 L140 72 Q131.0 82 131.0 96 Z"/></clipPath>
+<path d="M131.0 162 Q131.0 174 143.0 174 L177.0 174 Q189.0 174 189.0 162 L189.0 96 Q189.0 82 180 72 L173 58 L173 40 L147 40 L147 58 L140 72 Q131.0 82 131.0 96 Z" fill="#ffffff" opacity=".55"/>
+<g clip-path="url(#bt)"><rect x="131.0" y="70" width="58" height="110" fill="#ffffff"/>
+<rect x="131.0" y="100" width="58" height="46" fill="#f783ac"/>
+<rect x="137.0" y="62" width="9" height="104" rx="4.5" fill="#ffffff" opacity=".38"/></g>
+<path d="M131.0 162 Q131.0 174 143.0 174 L177.0 174 Q189.0 174 189.0 162 L189.0 96 Q189.0 82 180 72 L173 58 L173 40 L147 40 L147 58 L140 72 Q131.0 82 131.0 96 Z" fill="none" stroke="#000" stroke-opacity=".14" stroke-width="1.5"/>
+<rect x="145" y="24" width="30" height="18" rx="4" fill="#1c7ed6"/>
+<path d="M152 28 v10 M160 28 v10 M168 28 v10" stroke="#000" stroke-opacity=".18" stroke-width="2"/>
+<circle cx="150" cy="152" r="5" fill="#e03131"/><circle cx="160" cy="156" r="5" fill="#e03131"/><circle cx="170" cy="152" r="5" fill="#e03131"/>
+<text x="160" y="118" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="11" fill="#ffffff" >YOGURT</text>
+<text x="160" y="132" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="600" font-size="8" fill="#ffffff" >DRINK 150 ml</text>
+</svg>

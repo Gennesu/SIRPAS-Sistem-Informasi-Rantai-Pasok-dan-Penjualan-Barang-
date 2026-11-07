@@ -1,0 +1,6 @@
+Katalog produk warung (/Products): median 8 ms, p95 11 ms, maks 14 ms (20 permintaan)
+Marketplace grosir (/Marketplace): median 21 ms, p95 23 ms, maks 30 ms (20 permintaan)
+Katalog pembeli: daftar warung (/Shop): median 9 ms, p95 11 ms, maks 27 ms (20 permintaan)
+Katalog pembeli: toko (/Shop/Detail/3): median 7 ms, p95 7 ms, maks 7 ms (20 permintaan)
+Katalog produk pabrik (/Products): median 7 ms, p95 8 ms, maks 12 ms (20 permintaan)
+Marketplace pabrik (oleh grosir) (/Marketplace): median 11 ms, p95 11 ms, maks 17 ms (20 permintaan)

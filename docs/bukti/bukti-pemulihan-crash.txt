@@ -1,0 +1,12 @@
+== Verifikasi setelah crash dan restart
+  PASS PRAGMA integrity_check = ok
+  PASS tidak ada pelanggaran foreign key
+  PASS invarian stok/movement/reservasi utuh (0 pelanggaran)
+  PASS invarian batch utuh (0 pelanggaran)
+  PASS tidak ada pesanan menunggu tanpa reservasi/catatan pembayaran (0 yatim)
+  PASS tidak ada pesanan tanpa item (0)
+   (jumlah pesanan tersimpan setelah crash: 43)
+  PASS login berhasil setelah pemulihan
+  PASS pesanan baru dapat dibuat setelah pulih
+
+RINGKASAN: 8/8 pemeriksaan lulus

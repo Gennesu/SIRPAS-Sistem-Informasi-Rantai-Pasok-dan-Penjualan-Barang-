@@ -1,0 +1,40 @@
+@model Platform.Web.Modules.Admin.Contracts.AdminDashboardDto
+@{
+    ViewData["Title"] = "Beranda admin";
+}
+
+<div class="greet mt-2">
+    <div>
+        <h1>Ringkasan platform</h1>
+        <p>Pengguna, usaha, pesanan marketplace, dan penjualan kasir seluruh warung.</p>
+    </div>
+    <div class="g-actions">
+        <a class="btn btn-lg @(Model.PendingVerification > 0 ? "btn-tag" : "btn-secondary")" asp-controller="Admin" asp-action="Businesses" asp-route-status="Pending">@UiIcons.Svg("shield-check", 20) Antrean verifikasi @(Model.PendingVerification > 0 ? $"({Model.PendingVerification})" : "")</a>
+    </div>
+</div>
+
+<div class="section-title"><span>@UiIcons.Svg("users", 22)</span><h2>Pengguna &amp; usaha</h2></div>
+<div class="grid grid-4 kpis">
+    <div class="kpi"><div class="row-between"><span class="k-label">Pengguna</span><span class="k-ico">@UiIcons.Svg("users", 20)</span></div><div class="k-value">@Model.Users</div></div>
+    <div class="kpi"><div class="row-between"><span class="k-label">Warung</span><span class="k-ico">@UiIcons.Svg("store", 20)</span></div><div class="k-value">@Model.Retailers</div></div>
+    <div class="kpi tag"><div class="row-between"><span class="k-label">Grosir</span><span class="k-ico">@UiIcons.Svg("warehouse", 20)</span></div><div class="k-value">@Model.Wholesalers</div></div>
+    <div class="kpi"><div class="row-between"><span class="k-label">Pembeli akhir</span><span class="k-ico">@UiIcons.Svg("users", 20)</span></div><div class="k-value">@Model.Consumers</div><div class="k-note">@Model.ConsumerOrders pesanan pembeli</div></div>
+    <div class="kpi @(Model.StockIntegrityViolations > 0 ? "danger" : "good")"><div class="row-between"><span class="k-label">Pelanggaran integritas stok</span><span class="k-ico">@UiIcons.Svg("shield-check", 20)</span></div><div class="k-value">@Model.StockIntegrityViolations</div><div class="k-note">@(Model.StockIntegrityViolations == 0 ? "Stok, batch, reservasi, dan movement konsisten." : "Periksa rekonsiliasi stok.")</div></div>
+    <div class="kpi @(Model.PendingVerification > 0 ? "warn" : "")"><div class="row-between"><span class="k-label">Menunggu verifikasi</span><span class="k-ico">@UiIcons.Svg("shield-check", 20)</span></div><div class="k-value">@Model.PendingVerification</div><div class="k-note">@Model.InactiveBusinesses usaha nonaktif.</div></div>
+</div>
+
+<div class="section-title"><span>@UiIcons.Svg("package", 22)</span><h2>Transaksi</h2></div>
+<div class="grid grid-4 kpis">
+    <div class="kpi"><div class="row-between"><span class="k-label">Pesanan (semua)</span><span class="k-ico">@UiIcons.Svg("package", 20)</span></div><div class="k-value">@Model.OrdersTotal</div></div>
+    <div class="kpi blue"><div class="row-between"><span class="k-label">Pesanan berjalan</span><span class="k-ico">@UiIcons.Svg("truck", 20)</span></div><div class="k-value">@Model.OrdersOpen</div></div>
+    <div class="kpi good"><div class="row-between"><span class="k-label">Nilai pesanan selesai</span><span class="k-ico">@UiIcons.Svg("circle-check", 20)</span></div><div class="k-value">@Rupiah.Format(Model.OrdersCompletedValue)</div></div>
+    <div class="kpi accent"><div class="row-between"><span class="k-label">Omzet kasir (semua warung)</span><span class="k-ico">@UiIcons.Svg("wallet", 20)</span></div><div class="k-value">@Rupiah.Format(Model.PosRevenueTotal)</div><div class="k-note">@Model.AuditEvents aktivitas tercatat.</div></div>
+</div>
+
+<div class="section-title"><span>@UiIcons.Svg("settings", 22)</span><h2>Kelola platform</h2></div>
+<div class="grid grid-4">
+    <a class="card tight todo-item" style="grid-template-columns:46px 1fr" asp-controller="Admin" asp-action="Users"><span class="t-ico">@UiIcons.Svg("users", 22)</span><span><b>Pengguna</b><span>Akun dan peran</span></span></a>
+    <a class="card tight todo-item" style="grid-template-columns:46px 1fr" asp-controller="Admin" asp-action="Businesses"><span class="t-ico">@UiIcons.Svg("building-2", 22)</span><span><b>Usaha</b><span>Verifikasi &amp; status</span></span></a>
+    <a class="card tight todo-item" style="grid-template-columns:46px 1fr" asp-controller="Admin" asp-action="Orders"><span class="t-ico">@UiIcons.Svg("package", 22)</span><span><b>Pesanan</b><span>Pantau semua pesanan</span></span></a>
+    <a class="card tight todo-item" style="grid-template-columns:46px 1fr" asp-controller="Admin" asp-action="Audit"><span class="t-ico">@UiIcons.Svg("history", 22)</span><span><b>Log aktivitas</b><span>Jejak audit</span></span></a>
+</div>

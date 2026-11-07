@@ -1,0 +1,131 @@
+@model Platform.Web.Modules.Reporting.Contracts.DashboardDto
+@using Platform.Web.Modules.Notifications.Contracts
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Rescue.Contracts
+@inject INotificationService Notifications
+@inject IRescueService Rescue
+@inject IOrderService Orders
+@{
+    ViewData["Title"] = "Beranda";
+    var notes = await Notifications.GetAsync();
+    var rescue = await Rescue.GetDashboardAsync();
+    var recent = await Orders.ListAsync(null, 6);
+    var expiry = rescue.Expiry;
+    var total = Math.Max(1, expiry.Expired.Batches + expiry.Critical.Batches + expiry.Soon.Batches + expiry.Watch.Batches + expiry.Safe.Batches);
+    var hour = WibTime.ToWib(DateTime.UtcNow).Hour;
+    var salam = hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam";
+    var pending = notes.Items.FirstOrDefault(i => i.Key == "orders-pending")?.Count ?? 0;
+}
+
+<div class="greet mt-2">
+    <div>
+        <h1>@salam, @User.Identity?.Name</h1>
+        <p>
+            @if (pending > 0) { <text><b>@pending pesanan</b> dari warung menunggu Anda. </text> }
+            @if (expiry.UnitsAtRisk > 0) { <text>Ada <b>@Rupiah.Number(expiry.UnitsAtRisk, 0) item</b> yang akan kadaluarsa dalam 30 hari, modal @Rupiah.Format(expiry.ValueAtRisk).</text> }
+            @if (pending == 0 && expiry.UnitsAtRisk == 0) { <text>Tidak ada yang mendesak sekarang.</text> }
+        </p>
+    </div>
+    <div class="g-actions">
+        <a class="btn btn-lg" asp-controller="Orders" asp-action="Index">@UiIcons.Svg("inbox", 20) Pesanan masuk</a>
+        <a class="btn btn-lg btn-tag" asp-controller="Rescue" asp-action="Index">@UiIcons.Svg("leaf", 20) Selamatkan stok</a>
+    </div>
+</div>
+
+<div class="section-title"><span>@UiIcons.Svg("bell", 22)</span><h2>Perlu perhatian</h2></div>
+@if (notes.Items.Count == 0)
+{
+    <div class="card tight"><div class="row">@UiIcons.Svg("circle-check", 22)<span>Semua beres. Tidak ada yang mendesak sekarang.</span></div></div>
+}
+else
+{
+    <div class="todo">
+        @foreach (var n in notes.Items.Take(4))
+        {
+            <a class="todo-item @n.Tone.ToString().ToLowerInvariant()" href="@n.Url">
+                <span class="t-ico">@UiIcons.Svg(n.Icon, 22)</span>
+                <span><b>@n.Title</b><span>@n.Detail</span></span>
+                <span class="go">@UiIcons.Svg("chevron-right", 20)</span>
+            </a>
+        }
+    </div>
+}
+
+<div class="section-title"><span>@UiIcons.Svg("chart-column", 22)</span><h2>Ringkasan toko</h2></div>
+<div class="grid grid-4 kpis">
+    <div class="kpi"><div class="row-between"><span class="k-label">Produk aktif</span><span class="k-ico">@UiIcons.Svg("package", 20)</span></div><div class="k-value">@Model.ProductCount</div><div class="k-note">Di katalog grosir Anda.</div></div>
+    <div class="kpi tag"><div class="row-between"><span class="k-label">Nilai persediaan</span><span class="k-ico">@UiIcons.Svg("boxes", 20)</span></div><div class="k-value">@Rupiah.Format(Model.InventoryValue)</div><div class="k-note">@Rupiah.Number(Model.TotalStockBase, 0) item di gudang.</div></div>
+    <div class="kpi @(Model.LowStockCount > 0 ? "warn" : "")"><div class="row-between"><span class="k-label">Stok menipis / habis</span><span class="k-ico">@UiIcons.Svg("triangle-alert", 20)</span></div><div class="k-value">@Model.LowStockCount</div><div class="k-note">@(Model.LowStockCount > 0 ? "Segera belanja stok." : "Semua stok aman.")</div></div>
+    <div class="kpi accent"><div class="row-between"><span class="k-label">Diselamatkan (30 hari)</span><span class="k-ico">@UiIcons.Svg("heart-handshake", 20)</span></div><div class="k-value">@Rupiah.Format(rescue.Stats.RescuedRevenue30d)</div><div class="k-note">@Rupiah.Number(rescue.Stats.RescuedUnits30d, 0) item terjual lewat paket.</div></div>
+</div>
+
+<div class="split mt-2">
+    <div class="card">
+        <div class="card-head">
+            <h2>@UiIcons.Svg("leaf", 21) Masa kadaluarsa stok gudang</h2>
+            <a class="btn btn-sm btn-ghost" asp-controller="Rescue" asp-action="Index">Buka dashboard food waste @UiIcons.Svg("arrow-right", 16)</a>
+        </div>
+        @if (total == 1 && expiry.Safe.Batches == 0 && expiry.Critical.Batches == 0 && expiry.Soon.Batches == 0 && expiry.Watch.Batches == 0 && expiry.Expired.Batches == 0)
+        {
+            <p class="muted">Belum ada tanggal kadaluarsa tercatat. Isi tanggal saat mencatat stok masuk.</p>
+        }
+        else
+        {
+            <div class="stack-bar" role="img" aria-label="Sebaran batch menurut masa kadaluarsa">
+                <i class="s-expired" style="width:@(expiry.Expired.Batches * 100 / total)%"></i>
+                <i class="s-critical" style="width:@(expiry.Critical.Batches * 100 / total)%"></i>
+                <i class="s-soon" style="width:@(expiry.Soon.Batches * 100 / total)%"></i>
+                <i class="s-watch" style="width:@(expiry.Watch.Batches * 100 / total)%"></i>
+                <i class="s-safe" style="width:@(expiry.Safe.Batches * 100 / total)%"></i>
+            </div>
+            <div class="band-legend">
+                <div class="bl band-expired"><div><b>@expiry.Expired.Batches</b><span>Lewat tanggal</span><small>@Rupiah.Format(expiry.Expired.ValueAtCost)</small></div></div>
+                <div class="bl band-critical"><div><b>@expiry.Critical.Batches</b><span>0 – 7 hari</span><small>@Rupiah.Format(expiry.Critical.ValueAtCost)</small></div></div>
+                <div class="bl band-soon"><div><b>@expiry.Soon.Batches</b><span>8 – 14 hari</span><small>@Rupiah.Format(expiry.Soon.ValueAtCost)</small></div></div>
+                <div class="bl band-watch"><div><b>@expiry.Watch.Batches</b><span>15 – 30 hari</span><small>@Rupiah.Format(expiry.Watch.ValueAtCost)</small></div></div>
+                <div class="bl band-safe"><div><b>@expiry.Safe.Batches</b><span>Aman</span><small>@Rupiah.Format(expiry.Safe.ValueAtCost)</small></div></div>
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-head"><h2>@UiIcons.Svg("inbox", 21) Pesanan terbaru</h2><a class="small" asp-controller="Orders" asp-action="Index"><b>Semua</b></a></div>
+        @if (recent.Count == 0)
+        {
+            <p class="muted mb-0">Belum ada pesanan dari warung.</p>
+        }
+        <ul class="list-plain">
+            @foreach (var o in recent)
+            {
+                <li>
+                    <a class="row-between" asp-controller="Orders" asp-action="Detail" asp-route-id="@o.Id" style="color:inherit">
+                        <span><b>@o.BuyerName</b><span class="muted small" style="display:block">@o.Number &middot; @IdFormat.Stamp(o.CreatedAt)</span></span>
+                        <span style="text-align:right"><span class="@OrderLabels.BadgeClass(o.Status)">@OrderLabels.Status(o.Status)</span><span class="small num" style="display:block;font-weight:700">@Rupiah.Format(o.TotalAmount)</span></span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+@if (Model.LowStock.Count > 0)
+{
+    <div class="card mt-2">
+        <div class="card-head"><h2>@UiIcons.Svg("triangle-alert", 21) Stok menipis / habis</h2><a class="btn btn-sm" asp-controller="Purchases" asp-action="Create">@UiIcons.Svg("package-open", 17) Catat stok masuk</a></div>
+        <div class="table-wrap">
+            <table class="table table-stack">
+                <thead><tr><th>Produk</th><th class="right">Sisa</th><th class="right">Batas minimum</th></tr></thead>
+                <tbody>
+                @foreach (var l in Model.LowStock)
+                {
+                    <tr>
+                        <td class="cell-title"><span class="name">@l.Name</span></td>
+                        <td class="right" data-label="Sisa"><span class="badge @(l.QtyBase == 0 ? "badge-danger" : "badge-warn")">@l.QtyBase @l.BaseUnit</span></td>
+                        <td class="right muted" data-label="Batas minimum">@l.MinStockBase @l.BaseUnit</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

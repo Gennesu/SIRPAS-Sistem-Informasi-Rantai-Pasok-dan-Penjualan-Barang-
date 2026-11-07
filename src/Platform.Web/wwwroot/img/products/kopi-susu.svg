@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Kopi susu sachet">
+<title>Kopi susu sachet</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6ece2"/><stop offset="1" stop-color="#e6d1bd"/></linearGradient>
+<linearGradient id="sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<rect width="320" height="200" fill="url(#bg)"/>
+<circle cx="270" cy="36" r="46" fill="#fff" opacity=".3"/>
+<circle cx="48" cy="170" r="36" fill="#fff" opacity=".22"/>
+<ellipse cx="160" cy="181" rx="78" ry="8" fill="#000" opacity=".13"/>
+<g transform="rotate(-14 108 109.0)">
+<rect x="76.0" y="56" width="64" height="106" rx="4" fill="#b07a4a"/>
+<polygon points="76.0,56 140.0,56 139.0,68 132.0,65 125.0,68 118.0,65 111.0,68 104.0,65 97.0,68 90.0,65 83.0,68 76.0,65" fill="#7f5430"/>
+<polygon points="76.0,162 140.0,162 139.0,150 132.0,153 125.0,150 118.0,153 111.0,150 104.0,153 97.0,150 90.0,153 83.0,150 76.0,153" fill="#7f5430"/>
+<rect x="76.0" y="56" width="64" height="106" rx="4" fill="url(#sh)"/>
+<g transform="rotate(-25 108 112)"><ellipse cx="108" cy="112" rx="11" ry="16" fill="#fff6e8"/><path d="M108 97 q-7 15 0 30" fill="none" stroke="#b07a4a" stroke-width="2.5" stroke-linecap="round"/></g></g><g transform="rotate(14 212 109.0)">
+<rect x="180.0" y="56" width="64" height="106" rx="4" fill="#b07a4a"/>
+<polygon points="180.0,56 244.0,56 243.0,68 236.0,65 229.0,68 222.0,65 215.0,68 208.0,65 201.0,68 194.0,65 187.0,68 180.0,65" fill="#7f5430"/>
+<polygon points="180.0,162 244.0,162 243.0,150 236.0,153 229.0,150 222.0,153 215.0,150 208.0,153 201.0,150 194.0,153 187.0,150 180.0,153" fill="#7f5430"/>
+<rect x="180.0" y="56" width="64" height="106" rx="4" fill="url(#sh)"/>
+<g transform="rotate(-25 212 112)"><ellipse cx="212" cy="112" rx="11" ry="16" fill="#fff6e8"/><path d="M212 97 q-7 15 0 30" fill="none" stroke="#b07a4a" stroke-width="2.5" stroke-linecap="round"/></g></g><g transform="rotate(0 160 95.0)">
+<rect x="128.0" y="42" width="64" height="106" rx="4" fill="#8b5a2b"/>
+<polygon points="128.0,42 192.0,42 191.0,54 184.0,51 177.0,54 170.0,51 163.0,54 156.0,51 149.0,54 142.0,51 135.0,54 128.0,51" fill="#5e3b1b"/>
+<polygon points="128.0,148 192.0,148 191.0,136 184.0,139 177.0,136 170.0,139 163.0,136 156.0,139 149.0,136 142.0,139 135.0,136 128.0,139" fill="#5e3b1b"/>
+<rect x="128.0" y="42" width="64" height="106" rx="4" fill="url(#sh)"/>
+<g transform="rotate(-25 160 90)"><ellipse cx="160" cy="90" rx="11" ry="16" fill="#fff3e0"/><path d="M160 75 q-7 15 0 30" fill="none" stroke="#8b5a2b" stroke-width="2.5" stroke-linecap="round"/></g><text x="160" y="124" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="10" fill="#fff3e0" >KOPI SUSU</text></g>
+</svg>

@@ -1,0 +1,258 @@
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Orders.Domain
+
+@model IReadOnlyList<OrderSummaryDto>
+
+@{
+    ViewData["Title"] = "Pesanan (Transaksi)";
+    var current = ViewData["Status"] as OrderStatus?;
+
+    var pending = Model.Count(o =>
+        o.Status == OrderStatus.Pending);
+
+    var ongoing = Model.Count(o =>
+        o.Status == OrderStatus.Accepted ||
+        o.Status == OrderStatus.Preparing ||
+        o.Status == OrderStatus.Ready ||
+        o.Status == OrderStatus.Delivered ||
+        o.Status == OrderStatus.PickedUp);
+
+    var completed = Model.Count(o =>
+        o.Status == OrderStatus.Completed);
+
+    var totalValue = Model.Sum(o => o.TotalAmount);
+}
+
+<div class="page-head admin-page-head">
+    <div>
+        <span class="admin-eyebrow">MARKETPLACE &amp; TRANSAKSI</span>
+        <h1>Manajemen pesanan</h1>
+        <p class="lead">
+            Pantau transaksi antara warung dan grosir beserta status pemesanannya.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <span class="badge badge-info">Administrator</span>
+    </div>
+</div>
+
+<div class="admin-kpis admin-kpis-four">
+    <div class="admin-metric">
+        <div class="admin-metric-icon">
+            @UiIcons.Svg("shopping-bag", 22)
+        </div>
+        <div>
+            <span>Pesanan ditemukan</span>
+            <strong>@Model.Count</strong>
+            <small>Sesuai filter saat ini</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-gold">
+            @UiIcons.Svg("clock", 22)
+        </div>
+        <div>
+            <span>Menunggu</span>
+            <strong>@pending</strong>
+            <small>Menanti respons grosir</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-blue">
+            @UiIcons.Svg("truck", 22)
+        </div>
+        <div>
+            <span>Dalam proses</span>
+            <strong>@ongoing</strong>
+            <small>Diproses atau dikirim</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-purple">
+            @UiIcons.Svg("wallet", 22)
+        </div>
+        <div>
+            <span>Nilai pesanan</span>
+            <strong class="admin-money">@Rupiah.Format(totalValue)</strong>
+            <small>Jumlah dari hasil yang tampil</small>
+        </div>
+    </div>
+</div>
+
+<section class="card admin-panel mt-2">
+    <div class="card-head">
+        <div>
+            <h2>
+                @UiIcons.Svg("filter", 21)
+                Filter pesanan
+            </h2>
+            <p class="muted small mb-0">
+                Pilih status untuk menyaring daftar transaksi.
+            </p>
+        </div>
+    </div>
+
+    <form method="get"
+          asp-controller="Admin"
+          asp-action="Orders"
+          class="admin-filter-form">
+
+        <div class="field">
+            <label for="order-status">Status pesanan</label>
+            <select id="order-status" name="status">
+                <option value=""
+                        selected="@(!current.HasValue)">
+                    Semua status
+                </option>
+
+                @foreach (var s in Enum.GetValues<OrderStatus>())
+                {
+                    <option value="@s"
+                            selected="@(current == s)">
+                        @OrderLabels.Status(s)
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="admin-filter-actions">
+            <button type="submit" class="btn">
+                @UiIcons.Svg("filter", 17)
+                Terapkan filter
+            </button>
+
+            <a class="btn btn-secondary"
+               asp-controller="Admin"
+               asp-action="Orders">
+                Reset
+            </a>
+        </div>
+    </form>
+</section>
+
+<section class="card admin-table-card mt-2">
+    <div class="card-head admin-table-heading">
+        <div>
+            <h2>
+                @UiIcons.Svg("receipt-text", 21)
+                Daftar transaksi
+            </h2>
+            <p class="muted small mb-0">
+                Pesanan marketplace dari seluruh warung dan grosir.
+            </p>
+        </div>
+
+        <span class="badge">@Model.Count pesanan</span>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-stack hover admin-table admin-order-table">
+            <thead>
+                <tr>
+                    <th>No. pesanan</th>
+                    <th>Tanggal (WIB)</th>
+                    <th>Warung</th>
+                    <th>Grosir</th>
+                    <th>Barang</th>
+                    <th>Pengiriman</th>
+                    <th class="right">Total</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var o in Model)
+                {
+                    <tr>
+                        <td data-label="No. pesanan" class="cell-title">
+                            <span class="admin-order-number">
+                                @o.Number
+                            </span>
+                            <span class="sub">Transaksi marketplace</span>
+                        </td>
+
+                        <td data-label="Tanggal">
+                            <div class="admin-time">
+                                <strong>@WibTime.FormatDateTime(o.CreatedAt)</strong>
+                            </div>
+                        </td>
+
+                        <td data-label="Warung">
+                            <div class="admin-party">
+                                <span class="admin-party-icon">
+                                    @UiIcons.Svg("store", 17)
+                                </span>
+                                <strong>@o.BuyerName</strong>
+                            </div>
+                        </td>
+
+                        <td data-label="Grosir">
+                            <div class="admin-party">
+                                <span class="admin-party-icon admin-party-wholesale">
+                                    @UiIcons.Svg("warehouse", 17)
+                                </span>
+                                <strong>@o.SellerName</strong>
+                            </div>
+                        </td>
+
+                        <td data-label="Barang">
+                            <div class="admin-order-items">
+                                @o.ItemsText
+                            </div>
+                        </td>
+
+                        <td data-label="Pengiriman">
+                            <span class="badge badge-muted">
+                                @OrderLabels.Fulfillment(o.Fulfillment)
+                            </span>
+                        </td>
+
+                        <td data-label="Total" class="right num">
+                            <strong>@Rupiah.Format(o.TotalAmount)</strong>
+                        </td>
+
+                        <td data-label="Status">
+                            <span class="@OrderLabels.BadgeClass(o.Status)">
+                                @OrderLabels.Status(o.Status)
+                            </span>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8">
+                            <div class="admin-empty">
+                                @UiIcons.Svg("shopping-bag", 30)
+                                <strong>Belum ada pesanan</strong>
+                                <span>
+                                    Tidak ada transaksi yang cocok dengan filter ini.
+                                </span>
+
+                                <a class="btn btn-secondary btn-sm"
+                                   asp-controller="Admin"
+                                   asp-action="Orders">
+                                    Tampilkan semua
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="admin-table-foot">
+        <span>
+            @completed transaksi selesai dalam hasil yang ditampilkan.
+        </span>
+        <span>
+            Data berasal dari transaksi marketplace.
+        </span>
+    </div>
+</section>

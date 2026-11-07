@@ -1,0 +1,71 @@
+== 1. Checkout dikirim dua kali dengan kunci sama (klik ganda / kirim ulang)
+  PASS Place berhasil dan dialihkan ke detail pesanan (http://127.0.0.1:5088/ConsumerOrders/Details/2)
+  PASS pengiriman ulang dengan kunci sama menuju pesanan YANG SAMA
+  PASS hanya satu pesanan baru tercatat (1 -> 2)
+== 2. Pembayaran simulasi dari dua tab (kunci berbeda) dan refresh
+  PASS halaman pembayaran berlabel SIMULASI / DEMO
+  PASS tombol bayar simulasi tersedia
+  PASS tepat satu catatan pembayaran, berstatus Success (sukses=1, total=1)
+  PASS status pembayaran pesanan = Paid
+  PASS halaman menampilkan satu nomor referensi pembayaran
+== 3. Penjual memproses; penerimaan dikonfirmasi berulang tidak menggandakan penjualan/stok
+  PASS status setelah penjual menyerahkan = PickedUp (PickedUp)
+  PASS pesanan selesai
+  PASS penjualan (omzet) tercatat tepat SEKALI
+  PASS event Completed hanya satu
+== 4. Dua pembeli (dua sesi) berebut stok serentak lewat HTTP
+  PASS tepat satu dari dua permintaan serentak berhasil (stok 107, masing-masing minta 54); berhasil=1
+  PASS stok tidak minus dan reservasi dalam rentang (qty=113, ditahan=54)
+== 5. Invarian stok SELURUH database (rekonsiliasi langsung di SQL)
+  PASS tidak ada pelanggaran invarian stok/movement/reservasi (0 pelanggaran)
+  PASS tidak ada pelanggaran invarian batch (0 pelanggaran)
+  PASS tidak ada pesanan dengan dua pembayaran sukses
+== 6. Perbandingan jalur pengadaan dan pesanan kolektif (Warung Maju)
+  PASS produk Mi Instan Goreng tersedia untuk dibandingkan
+  PASS halaman menampilkan ketiga jalur (141 ms)
+  PASS biaya/ total ditampilkan (komponen tak diketahui ditandai)
+  PASS rekomendasi menyatakan tidak memesan otomatis
+  PASS membuka perbandingan tidak membuat pesanan
+== 7. Hak akses lintas peran
+  PASS pembeli ditolak di /Stock (dialihkan ke /status/403?ReturnUrl=%2FStock)
+  PASS pembeli ditolak di /Products (dialihkan ke /status/403?ReturnUrl=%2FProducts)
+  PASS pembeli ditolak di /Orders (dialihkan ke /status/403?ReturnUrl=%2FOrders)
+  PASS pembeli ditolak di /Procurement (dialihkan ke /status/403?ReturnUrl=%2FProcurement)
+  PASS pembeli ditolak di /Collective (dialihkan ke /status/403?ReturnUrl=%2FCollective)
+  PASS pembeli ditolak di /Admin/Businesses (dialihkan ke /status/403?ReturnUrl=%2FAdmin%2FBusinesses)
+  PASS pembeli ditolak di /Delivery (dialihkan ke /status/403?ReturnUrl=%2FDelivery)
+  PASS anonim dialihkan ke login di /Shop
+  PASS anonim dialihkan ke login di /Stock
+  PASS anonim dialihkan ke login di /Orders
+  PASS anonim dialihkan ke login di /ConsumerOrders
+  PASS anonim dialihkan ke login di /Home/ManufacturerDashboard
+== 8. Permintaan yang dimanipulasi dan endpoint sensitif
+  PASS POST tanpa token antiforgery ditolak (HTTP 400)
+  PASS pembeli lain TIDAK dapat membayar pesanan orang lain
+  PASS pembeli lain TIDAK dapat membatalkan pesanan orang lain
+  PASS pembeli lain mendapat 404 saat membuka detail pesanan orang lain (HTTP 404)
+  PASS warung penjual dapat membuka pesanan miliknya
+  PASS warung lain mendapat 404 untuk pesanan pembeli milik warung berbeda (HTTP 404)
+  PASS POST anonim ke /Shop/Place ditolak (200)
+  PASS halaman galat tidak menampilkan stack trace
+== 9. Mode offline: halaman yang dirender tidak memuat sumber eksternal
+  PASS 29 halaman diperiksa
+  PASS tidak ada <script>/<link>/<img> ke host eksternal (ditemukan: tidak ada)
+  PASS peta berjalan dalam mode lokal (PLATFORM_MAP.online = false)
+== 10. Waktu respons HTTP halaman katalog (target NFR: maksimal 3 detik)
+  Katalog produk warung (/Products): median 8 ms, p95 11 ms, maks 14 ms (20 permintaan)
+  PASS Katalog produk warung <= 3000 ms (maks 14 ms)
+  Marketplace grosir (/Marketplace): median 21 ms, p95 23 ms, maks 30 ms (20 permintaan)
+  PASS Marketplace grosir <= 3000 ms (maks 30 ms)
+  Perbandingan jalur pengadaan (/Procurement): median 14 ms, p95 26 ms, maks 32 ms (20 permintaan)
+  PASS Perbandingan jalur pengadaan <= 3000 ms (maks 32 ms)
+  Katalog pembeli: daftar warung (/Shop): median 9 ms, p95 11 ms, maks 27 ms (20 permintaan)
+  PASS Katalog pembeli: daftar warung <= 3000 ms (maks 27 ms)
+  Katalog pembeli: toko (/Shop/Detail/3): median 7 ms, p95 7 ms, maks 7 ms (20 permintaan)
+  PASS Katalog pembeli: toko <= 3000 ms (maks 7 ms)
+  Katalog produk pabrik (/Products): median 7 ms, p95 8 ms, maks 12 ms (20 permintaan)
+  PASS Katalog produk pabrik <= 3000 ms (maks 12 ms)
+  Marketplace pabrik (oleh grosir) (/Marketplace): median 11 ms, p95 11 ms, maks 17 ms (20 permintaan)
+  PASS Marketplace pabrik (oleh grosir) <= 3000 ms (maks 17 ms)
+
+RINGKASAN: 52/52 pemeriksaan lulus

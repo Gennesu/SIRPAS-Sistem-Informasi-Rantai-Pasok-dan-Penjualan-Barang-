@@ -1,0 +1,7 @@
+@{
+    var mapType = ViewData["MapType"] as string ?? "warung";
+}
+<div class="chips scroll mb-2" role="tablist" aria-label="Pilih peta terdekat">
+    <a class="chip @(mapType == "warung" ? "active" : "")" asp-controller="Map" asp-action="Index" asp-route-mapType="warung" role="tab" aria-selected="@(mapType == "warung")">Peta warung terdekat</a>
+    <a class="chip @(mapType == "peternakan" ? "active" : "")" asp-controller="Map" asp-action="Index" asp-route-mapType="peternakan" role="tab" aria-selected="@(mapType == "peternakan")">Peta peternakan terdekat</a>
+</div>

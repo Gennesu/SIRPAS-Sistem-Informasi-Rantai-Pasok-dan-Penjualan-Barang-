@@ -1,0 +1,65 @@
+@using Platform.Web.Modules.Catalog.Contracts
+@{
+    var title = "Input produk manual";
+    var sub = "Catat jumlah hasil produksi secara manual. Jumlah yang disimpan langsung masuk ke Manajemen Stok.";
+    var art = "kandang";
+    var products = ViewData["ProductionProducts"] as IReadOnlyList<ProductDto> ?? Array.Empty<ProductDto>();
+    var opKey = Guid.NewGuid().ToString("N");
+    ViewData["Title"] = title;
+}
+
+<div class="greet chain-greet mt-2">
+    <div>
+        <h1>@title</h1>
+        <p>@sub</p>
+    </div>
+    <img class="greet-art" src="~/img/chain/@(art).svg" alt="" loading="lazy">
+</div>
+
+<div class="section-title mt-2"><span>@UiIcons.Svg("package", 22)</span><h2>Catat hasil produk</h2></div>
+<div class="card">
+    @if (products.Count == 0)
+    {
+        <p class="muted">Belum ada produk aktif. Tambahkan produk terlebih dahulu melalui <a asp-controller="Products" asp-action="Index">Produk &amp; foto produk</a>.</p>
+    }
+    else
+    {
+        <form asp-controller="Chain" asp-action="CatatProduksi" method="post" data-once>
+            <input type="hidden" name="kind" value="produksi" />
+            <input type="hidden" name="returnTo" value="Rencana" />
+            <input type="hidden" name="opKey" value="@opKey" />
+            <div class="form-grid">
+                <div class="field">
+                    <label for="manual-product">Produk</label>
+                    <select id="manual-product" name="productId" required>
+                        @foreach (var product in products)
+                        {
+                            <option value="@product.Id">@product.Name (@product.BaseUnitName)</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="manual-qty">Jumlah hasil produksi (satuan dasar)</label>
+                    <input id="manual-qty" name="qty" type="number" min="1" max="1000000" step="1" required inputmode="numeric" />
+                </div>
+                <div class="field">
+                    <label for="manual-cost">Biaya per satuan, Rp (opsional)</label>
+                    <input id="manual-cost" name="cost" type="number" min="0" step="0.01" inputmode="decimal" />
+                </div>
+                <div class="field">
+                    <label for="manual-expiry">Tanggal kedaluwarsa (opsional)</label>
+                    <input id="manual-expiry" name="expiry" type="date" />
+                </div>
+                <div class="field">
+                    <label for="manual-lot">Nomor lot (opsional)</label>
+                    <input id="manual-lot" name="lot" maxlength="40" />
+                </div>
+                <div class="field">
+                    <label for="manual-note">Catatan (opsional)</label>
+                    <input id="manual-note" name="note" maxlength="120" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-lg">Simpan dan tambahkan ke stok</button>
+        </form>
+    }
+</div>

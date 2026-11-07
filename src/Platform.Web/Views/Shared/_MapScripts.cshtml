@@ -1,0 +1,6 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@* Peta OpenStreetMap + Leaflet. Map:OnlineTiles = true (bawaan) -> tile OSM dimuat dari internet di atas kisi lokal (tanpa internet pin tetap terbaca).
+   false -> selalu kisi skematis lokal tanpa permintaan internet. *@
+<script>window.PLATFORM_MAP = { online: @(Configuration.GetValue("Map:OnlineTiles", true) ? "true" : "false") };</script>
+<script src="~/lib/leaflet/leaflet.js"></script>
+<script src="~/js/map-core.js" asp-append-version="true"></script>

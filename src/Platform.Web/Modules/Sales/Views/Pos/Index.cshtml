@@ -1,0 +1,247 @@
+@{
+    ViewData["Title"] = "Kasir";
+    ViewData["PageClass"] = "pos-page";
+}
+@Html.AntiForgeryToken()
+
+<div class="page-head">
+    <div>
+        <h1>Kasir</h1>
+        <p class="lead">Ketuk produk untuk menambah ke keranjang. Barang yang paling dekat kadaluarsa otomatis keluar lebih dulu (FEFO).</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-secondary"
+           asp-controller="Sales"
+           asp-action="Index">
+            @UiIcons.Svg("receipt", 18) Riwayat penjualan
+        </a>
+    </div>
+</div>
+
+<div id="pos" class="pos"
+     data-products-url="@Url.Action("Products", "Pos")"
+     data-checkout-url="@Url.Action("Checkout", "Pos")"
+     data-receipt-url="@Url.Action("Receipt", "Sales")">
+
+    <section>
+        <div class="search-box mb-2">
+            @UiIcons.Svg("search", 19)
+            <input id="pos-search"
+                   type="search"
+                   placeholder="Cari nama atau SKU produk"
+                   autocomplete="off"
+                   aria-label="Cari produk"
+                   style="min-height:52px;font-size:1.02rem" />
+        </div>
+
+        <p class="hint">
+            Hanya produk dengan stok &gt; 0 dan harga jual terisi yang tampil.
+            Atur harga jual di menu Stok.
+        </p>
+
+        <div id="pos-results" class="pos-grid" aria-live="polite"></div>
+    </section>
+
+    <aside class="cart" id="cart">
+        <div class="cart-head" id="cart-head">
+            <h2>
+                @UiIcons.Svg("shopping-basket", 20)
+                Keranjang
+                <span class="badge" id="cart-count">0</span>
+            </h2>
+            <span class="muted small">
+                Total
+                <b id="cart-mini" class="display">Rp0</b>
+            </span>
+        </div>
+
+        <div class="cart-lines" id="pos-cart">
+            <div class="empty" style="padding:22px 8px">
+                <p class="mb-0">
+                    Keranjang kosong. Pilih produk di sebelah kiri.
+                </p>
+            </div>
+        </div>
+
+        <div class="cart-foot">
+            <div class="cart-total">
+                <span class="muted"><b>Total</b></span>
+                <b id="pos-total">Rp0</b>
+            </div>
+
+            <div class="seg" role="radiogroup" aria-label="Metode pembayaran">
+                <input type="radio"
+                       name="pos-method"
+                       id="m-cash"
+                       value="CASH"
+                       checked />
+                <label for="m-cash">
+                    @UiIcons.Svg("banknote", 17) Tunai
+                </label>
+
+                <input type="radio"
+                       name="pos-method"
+                       id="m-qris"
+                       value="QRIS" />
+                <label for="m-qris">
+                    @UiIcons.Svg("scan-barcode", 17) QRIS
+                </label>
+
+                <input type="radio"
+                       name="pos-method"
+                       id="m-trf"
+                       value="TRANSFER" />
+                <label for="m-trf">
+                    @UiIcons.Svg("building-2", 17) Transfer
+                </label>
+            </div>
+
+            <!-- Panel pembayaran non-tunai dummy -->
+            <div id="mock-payment"
+                 class="mock-payment hide"
+                 aria-live="polite">
+
+                <!-- QRIS -->
+                <section id="qris-panel"
+                         class="mock-pay-panel hide">
+
+                    <div class="mock-pay-head">
+                        <span class="mock-pay-icon">▦</span>
+
+                        <div>
+                            <strong>QRIS Demo</strong>
+                            <small>Simulasi pembayaran non-tunai</small>
+                        </div>
+
+                        <span class="mock-pill">DUMMY</span>
+                    </div>
+
+                    <div class="dummy-qr-wrap">
+                        <div id="dummy-qr"
+                             class="dummy-qr"
+                             role="img"
+                             aria-label="QR dummy, tidak dapat dipindai">
+                        </div>
+
+                        <span class="dummy-qr-stamp">SIMULASI</span>
+                    </div>
+
+                    <p class="mock-warning">
+                        QR ini hanya ilustrasi. Tidak dapat dipindai
+                        dan tidak menerima pembayaran sungguhan.
+                    </p>
+
+                    <div class="mock-pay-amount">
+                        <span>Total simulasi</span>
+                        <strong id="mock-qris-total">Rp0</strong>
+                    </div>
+
+                    <button type="button"
+                            class="btn btn-secondary btn-block"
+                            id="qris-simulate">
+                        Simulasikan pembayaran QRIS berhasil
+                    </button>
+                </section>
+
+                <!-- Transfer -->
+                <section id="transfer-panel"
+                         class="mock-pay-panel hide">
+
+                    <div class="mock-pay-head">
+                        <span class="mock-pay-icon">▤</span>
+
+                        <div>
+                            <strong>Transfer Bank Demo</strong>
+                            <small>Rekening contoh untuk presentasi</small>
+                        </div>
+
+                        <span class="mock-pill">DUMMY</span>
+                    </div>
+
+                    <div class="mock-account">
+                        <div>
+                            <span>Bank</span>
+                            <strong>Bank Demo (fiktif)</strong>
+                        </div>
+
+                        <div>
+                            <span>Nomor rekening</span>
+                            <strong class="mock-account-number">
+                                0000000000
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Atas nama</span>
+                            <strong>WARUNG MAJU - DUMMY</strong>
+                        </div>
+                    </div>
+
+                    <button type="button"
+                            class="btn btn-secondary btn-block"
+                            id="copy-transfer">
+                        Salin detail rekening dummy
+                    </button>
+
+                    <div class="mock-pay-amount">
+                        <span>Total simulasi transfer</span>
+                        <strong id="mock-transfer-total">Rp0</strong>
+                    </div>
+
+                    <p class="mock-warning">
+                        Jangan transfer uang sungguhan ke detail ini.
+                        Rekening hanya untuk simulasi.
+                    </p>
+
+                    <button type="button"
+                            class="btn btn-secondary btn-block"
+                            id="transfer-simulate">
+                        Simulasikan transfer berhasil
+                    </button>
+                </section>
+
+                <div id="mock-payment-status"
+                     class="mock-payment-status hide">
+                </div>
+            </div>
+
+            <!-- Pembayaran tunai -->
+            <div id="cash-box"
+                 class="stack"
+                 style="--gap:8px">
+
+                <div class="input-group">
+                    <span class="addon">Rp</span>
+                    <input id="pos-paid"
+                           type="number"
+                           min="0"
+                           step="500"
+                           inputmode="numeric"
+                           placeholder="Uang diterima"
+                           aria-label="Uang diterima" />
+                </div>
+
+                <div class="quick-cash" id="quick-cash"></div>
+
+                <div class="change-box" id="change-box">
+                    <span>Kembalian</span>
+                    <b id="pos-change">Rp0</b>
+                </div>
+            </div>
+
+            <button id="pos-confirm"
+                    type="button"
+                    class="btn btn-lg btn-block"
+                    disabled>
+                @UiIcons.Svg("circle-check", 20)
+                Selesaikan &amp; cetak struk
+            </button>
+
+            <div id="pos-message"></div>
+        </div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="~/js/pos.js" asp-append-version="true"></script>
+}

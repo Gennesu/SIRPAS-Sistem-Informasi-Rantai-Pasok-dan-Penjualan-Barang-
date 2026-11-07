@@ -1,0 +1,69 @@
+@using Platform.Web.Modules.Orders.Contracts
+@using Platform.Web.Modules.Orders.Domain
+@using Platform.Web.Modules.Delivery.Contracts
+@model OrderDetailDto
+@{
+    ViewData["Title"] = "Nota " + Model.Number;
+    ViewData["Nav"] = "Orders/Index";
+    var t = Model.Tracking!;
+    var failed = Model.Status is OrderStatus.Rejected or OrderStatus.Cancelled;
+    var done = Model.Status == OrderStatus.Completed;
+    var n = 0;
+}
+@section Styles { <style>@@page { size: A5 portrait; margin: 9mm; }</style> }
+
+<div class="page-head no-print">
+    <div><h1>Nota pesanan</h1><p class="lead">Siap dicetak (A5) atau disimpan sebagai PDF lewat dialog cetak peramban.</p></div>
+    <div class="page-actions"><button type="button" class="btn" onclick="window.print()">@UiIcons.Svg("printer", 18) Cetak / simpan PDF</button><a class="btn btn-secondary" asp-action="Detail" asp-route-id="@Model.Id">Kembali ke pesanan</a></div>
+</div>
+
+<div class="nota">
+    <div class="nota-head">
+        <div>
+            <b style="font-size:1.15rem">@Model.SellerName</b><br />
+            @t.SellerAddress<br />
+            @if (!string.IsNullOrWhiteSpace(t.SellerPhone)) { <text>Telp. @t.SellerPhone</text> }
+        </div>
+        <div style="text-align:right">
+            <h1>Nota</h1>
+            <div class="nota-no">@Model.Number</div>
+            <div class="small">@IdFormat.StampWithYear(Model.CreatedAt) WIB</div>
+            @if (done) { <span class="stamp mt-1">Selesai</span> }
+            else if (failed) { <span class="stamp red mt-1">@OrderLabels.Status(Model.Status)</span> }
+            else { <span class="stamp mt-1" style="border-color:#b7791f;color:#b7791f">@OrderLabels.Status(Model.Status)</span> }
+        </div>
+    </div>
+
+    <div class="parties">
+        <div><h4>@(Model.IsLivestockSale ? "Agen penerima" : "Kepada")</h4><b>@Model.BuyerName</b><br />@t.BuyerAddress<br />@if (!string.IsNullOrWhiteSpace(t.BuyerPhone)) { <text>Telp. @t.BuyerPhone</text> }</div>
+        <div><h4>@(Model.IsLivestockSale ? "Serah terima" : "Pengiriman")</h4><b>@OrderLabels.Fulfillment(Model.Fulfillment)</b>@if (Model.Fulfillment == FulfillmentType.Delivery && Model.DeliveryDistanceKm is double dk) { <text> · @dk.ToString("0.0") km</text> }<br />@if (!string.IsNullOrEmpty(Model.Note)) { <span>Catatan: @Model.Note</span> }</div>
+    </div>
+
+    <table>
+        <thead><tr><th style="width:34px">No</th><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Jumlah (Rp)</th></tr></thead>
+        <tbody>
+        @foreach (var i in Model.Items)
+        {
+            n++;
+            <tr>
+                <td>@n</td>
+                <td>@i.ProductName@if (!string.IsNullOrEmpty(i.BundleName)) { <div class="small" style="color:#555">Paket anti-mubazir: @i.BundleName</div> }@if (!string.IsNullOrEmpty(i.ExpiryText)) { <div class="small" style="color:#555">@i.ExpiryText</div> }</td>
+                <td class="r">@i.QtyPack @i.UnitName</td>
+                <td class="r">@Rupiah.Format(i.UnitPrice)</td>
+                <td class="r">@Rupiah.Format(i.Subtotal)</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <div class="sum">
+        <div class="r-row"><span>Subtotal</span><span>@Rupiah.Format(Model.Subtotal)</span></div>
+        <div class="r-row"><span>Ongkos kirim</span><span>@(Model.DeliveryFee == 0 ? "-" : Rupiah.Format(Model.DeliveryFee))</span></div>
+        @if (Model.Savings > 0) { <div class="r-row"><span>Hemat dari harga normal</span><span>@Rupiah.Format(Model.Savings)</span></div> }
+        <div class="r-row grand"><span>TOTAL</span><span>@Rupiah.Format(Model.TotalAmount)</span></div>
+    </div>
+
+    <p class="small" style="margin-top:14px;color:#555">Barang yang sudah diterima dalam keadaan baik. Tanggal kedaluwarsa tercatat di sistem. Pembayaran diatur langsung antara penjual dan penerima.</p>
+
+    <div class="sign"><div>Pengirim</div><div>Penerima</div><div>Hormat kami</div></div>
+</div>

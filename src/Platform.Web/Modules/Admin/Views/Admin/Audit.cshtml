@@ -1,0 +1,268 @@
+@model IReadOnlyList<Platform.Web.Modules.Admin.Contracts.AuditLogDto>
+
+@{
+    ViewData["Title"] = "Log Aktivitas";
+    var prefix = ViewData["Prefix"] as string;
+
+    var orderLogs = Model.Count(a =>
+        a.Action.StartsWith("ORDER", StringComparison.OrdinalIgnoreCase));
+
+    var authLogs = Model.Count(a =>
+        a.Action.StartsWith("AUTH", StringComparison.OrdinalIgnoreCase));
+
+    var businessLogs = Model.Count(a =>
+        a.Action.StartsWith("BUSINESS", StringComparison.OrdinalIgnoreCase));
+
+    string ActionTone(string action)
+    {
+        if (action.StartsWith("ORDER", StringComparison.OrdinalIgnoreCase))
+            return "badge-info";
+
+        if (action.StartsWith("AUTH", StringComparison.OrdinalIgnoreCase))
+            return "badge-muted";
+
+        if (action.StartsWith("BUSINESS", StringComparison.OrdinalIgnoreCase))
+            return "badge-tag";
+
+        if (action.StartsWith("SALE", StringComparison.OrdinalIgnoreCase))
+            return "badge-ok";
+
+        if (action.StartsWith("PRODUCT", StringComparison.OrdinalIgnoreCase) ||
+            action.StartsWith("STOCK", StringComparison.OrdinalIgnoreCase))
+            return "badge-warn";
+
+        return "badge-muted";
+    }
+}
+
+<div class="page-head admin-page-head">
+    <div>
+        <span class="admin-eyebrow">KEAMANAN &amp; PEMANTAUAN</span>
+        <h1>Log aktivitas</h1>
+        <p class="lead">
+            Pantau perubahan penting yang tercatat di dalam platform.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <span class="badge badge-info">
+            Maksimal 200 catatan
+        </span>
+    </div>
+</div>
+
+<div class="admin-kpis admin-kpis-four">
+    <div class="admin-metric">
+        <div class="admin-metric-icon">
+            @UiIcons.Svg("activity", 22)
+        </div>
+        <div>
+            <span>Aktivitas ditemukan</span>
+            <strong>@Model.Count</strong>
+            <small>Sesuai hasil filter</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-blue">
+            @UiIcons.Svg("shopping-bag", 22)
+        </div>
+        <div>
+            <span>Pesanan</span>
+            <strong>@orderLogs</strong>
+            <small>Aksi ORDER</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-gold">
+            @UiIcons.Svg("user-round", 22)
+        </div>
+        <div>
+            <span>Autentikasi</span>
+            <strong>@authLogs</strong>
+            <small>Aksi AUTH</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-purple">
+            @UiIcons.Svg("store", 22)
+        </div>
+        <div>
+            <span>Usaha</span>
+            <strong>@businessLogs</strong>
+            <small>Aksi BUSINESS</small>
+        </div>
+    </div>
+</div>
+
+<section class="card admin-panel mt-2">
+    <div class="card-head">
+        <div>
+            <h2>
+                @UiIcons.Svg("filter", 21)
+                Filter aktivitas
+            </h2>
+            <p class="muted small mb-0">
+                Cari berdasarkan awalan kode aksi.
+            </p>
+        </div>
+    </div>
+
+    <form method="get"
+          asp-controller="Admin"
+          asp-action="Audit"
+          class="admin-filter-form">
+
+        <div class="field">
+            <label for="audit-prefix">Awalan aksi</label>
+            <input id="audit-prefix"
+                   name="prefix"
+                   value="@prefix"
+                   placeholder="Misalnya ORDER, AUTH, BUSINESS"
+                   autocomplete="off" />
+        </div>
+
+        <div class="admin-filter-actions">
+            <button type="submit" class="btn">
+                @UiIcons.Svg("search", 17)
+                Terapkan filter
+            </button>
+
+            <a class="btn btn-secondary"
+               asp-controller="Admin"
+               asp-action="Audit">
+                Reset
+            </a>
+        </div>
+    </form>
+
+    <div class="admin-quick-filters">
+        <a class="chip @(string.IsNullOrEmpty(prefix) ? "active" : "")"
+           asp-controller="Admin"
+           asp-action="Audit">
+            Semua
+        </a>
+
+        <a class="chip @(string.Equals(prefix, "ORDER", StringComparison.OrdinalIgnoreCase) ? "active" : "")"
+           href="@Url.Action("Audit", "Admin", new { prefix = "ORDER" })">
+            Pesanan
+        </a>
+
+        <a class="chip @(string.Equals(prefix, "AUTH", StringComparison.OrdinalIgnoreCase) ? "active" : "")"
+           href="@Url.Action("Audit", "Admin", new { prefix = "AUTH" })">
+            Autentikasi
+        </a>
+
+        <a class="chip @(string.Equals(prefix, "BUSINESS", StringComparison.OrdinalIgnoreCase) ? "active" : "")"
+           href="@Url.Action("Audit", "Admin", new { prefix = "BUSINESS" })">
+            Usaha
+        </a>
+    </div>
+</section>
+
+<section class="card admin-table-card mt-2">
+    <div class="card-head admin-table-heading">
+        <div>
+            <h2>
+                @UiIcons.Svg("history", 21)
+                Riwayat aktivitas
+            </h2>
+            <p class="muted small mb-0">
+                Data ditampilkan dari log yang disimpan oleh sistem.
+            </p>
+        </div>
+
+        <span class="badge">@Model.Count catatan</span>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-stack hover admin-table admin-audit-table">
+            <thead>
+                <tr>
+                    <th>Waktu (WIB)</th>
+                    <th>Aksi</th>
+                    <th>Objek</th>
+                    <th>Detail</th>
+                    <th>User / Usaha</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td data-label="Waktu">
+                            <div class="admin-time">
+                                <strong>@WibTime.FormatDateTime(a.At)</strong>
+                                <span>ID log #@a.Id</span>
+                            </div>
+                        </td>
+
+                        <td data-label="Aksi">
+                            <span class="badge @ActionTone(a.Action)">
+                                @a.Action
+                            </span>
+                        </td>
+
+                        <td data-label="Objek">
+                            <div class="admin-object">
+                                <strong>@(a.EntityType ?? "-")</strong>
+                                <span>
+                                    @(string.IsNullOrWhiteSpace(a.EntityId)
+                                        ? "Tanpa ID objek"
+                                        : "#" + a.EntityId)
+                                </span>
+                            </div>
+                        </td>
+
+                        <td data-label="Detail">
+                            @if (!string.IsNullOrWhiteSpace(a.Detail))
+                            {
+                                <details class="admin-audit-detail">
+                                    <summary>Lihat detail</summary>
+                                    <div>@a.Detail</div>
+                                </details>
+                            }
+                            else
+                            {
+                                <span class="muted small">Tidak ada detail</span>
+                            }
+                        </td>
+
+                        <td data-label="User / Usaha">
+                            <div class="admin-object">
+                                <strong>
+                                    @(a.UserId is int userId
+                                        ? "User #" + userId
+                                        : "Sistem")
+                                </strong>
+                                <span>
+                                    @(a.BusinessId is int businessId
+                                        ? "Usaha #" + businessId
+                                        : "Tanpa usaha")
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <div class="admin-empty">
+                                @UiIcons.Svg("history", 30)
+                                <strong>Aktivitas tidak ditemukan</strong>
+                                <span>
+                                    Coba ubah awalan aksi atau reset filter.
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

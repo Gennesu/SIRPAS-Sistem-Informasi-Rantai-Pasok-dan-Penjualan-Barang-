@@ -1,0 +1,80 @@
+@model Platform.Web.Modules.Rescue.ViewModels.BundlesViewModel
+@using Platform.Web.Modules.Rescue.Contracts
+@using Platform.Web.Modules.Rescue.ViewModels
+@{
+    ViewData["Title"] = "Paket & penawaran";
+    var openOffers = Model.Offers.Count(o => o.State == OfferState.Sent);
+}
+
+<div class="page-head">
+    <div>
+        <h1>Paket &amp; penawaran</h1>
+        <p class="lead">Paket diskon dari barang mendekati kadaluarsa dan penawaran yang Anda kirim ke warung.</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-tag" asp-action="Compose">@UiIcons.Svg("plus", 18) Buat paket</a>
+        <a class="btn btn-secondary" asp-action="Index">@UiIcons.Svg("leaf", 18) Dashboard</a>
+    </div>
+</div>
+
+<div class="tabs" role="tablist">
+    <a class="@(Model.Tab == "active" ? "active" : "")" asp-action="Bundles" asp-route-tab="active">@UiIcons.Svg("gift", 17) Paket aktif</a>
+    <a class="@(Model.Tab == "offers" ? "active" : "")" asp-action="Bundles" asp-route-tab="offers">@UiIcons.Svg("send", 17) Penawaran terkirim @if (openOffers > 0) { <span class="badge badge-info">@openOffers terbuka</span> }</a>
+    <a class="@(Model.Tab == "history" ? "active" : "")" asp-action="Bundles" asp-route-tab="history">@UiIcons.Svg("history", 17) Riwayat</a>
+</div>
+
+@if (Model.Tab == "offers")
+{
+    @if (Model.Offers.Count == 0)
+    {
+        <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("send", 30)</div><h3>Belum ada penawaran terkirim</h3><p>Buka dashboard food waste, lalu klik <b>Tawarkan</b> pada warung yang paling laku menjual barang tersebut.</p><a class="btn" asp-action="Index">Buka dashboard</a></div></div>
+    }
+    else
+    {
+        <div class="card pad-0">
+            <div class="table-wrap">
+                <table class="table table-stack hover">
+                    <thead><tr><th>Warung</th><th>Paket</th><th class="right">Disarankan</th><th>Status</th><th>Terkirim</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var o in Model.Offers)
+                    {
+                        <tr>
+                            <td class="cell-title"><span class="name">@o.BuyerName</span>@if (!string.IsNullOrEmpty(o.Message)) { <span class="sub">&ldquo;@o.Message&rdquo;</span> }</td>
+                            <td data-label="Paket">@o.BundleTitle @if (o.Bundle is not null) { <span class="sub">@Rupiah.Format(o.Bundle.Price) · hemat @o.Bundle.DiscountPercent%</span> }</td>
+                            <td class="right" data-label="Disarankan">@o.SuggestedBundles paket</td>
+                            <td data-label="Status">
+                                <span class="badge @(o.State == OfferState.Accepted ? "badge-ok" : o.State == OfferState.Sent ? "badge-info" : o.State == OfferState.Declined ? "badge-danger" : "badge-muted")">@RescueLabels.Offer(o.State)</span>
+                                @if (o.State == OfferState.Sent) { <span class="sub">sampai @IdFormat.Stamp(o.ExpiresAt)</span> }
+                            </td>
+                            <td data-label="Terkirim" class="muted small nowrap">@IdFormat.Stamp(o.CreatedAt)</td>
+                            <td class="right cell-actions">
+                                @if (o.State == OfferState.Accepted && o.OrderId is int oid)
+                                {
+                                    <a class="btn btn-sm btn-secondary" asp-controller="Orders" asp-action="Detail" asp-route-id="@oid">Lihat pesanan</a>
+                                }
+                                else if (o.State == OfferState.Sent)
+                                {
+                                    <form asp-action="WithdrawOffer" asp-route-id="@o.Id" method="post" class="inline"><button class="btn btn-sm btn-danger-ghost" type="submit" data-confirm="Tarik penawaran ke @o.BuyerName?" data-confirm-ok="Ya, tarik" data-confirm-danger>Tarik</button></form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+else
+{
+    @if (Model.Bundles.Count == 0)
+    {
+        <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("gift", 30)</div><h3>@(Model.Tab == "history" ? "Belum ada riwayat paket" : "Belum ada paket aktif")</h3><p>Paket dibuat dari batch yang mendekati kadaluarsa. Mulai dari dashboard food waste agar diskon dan warung tujuan disarankan otomatis.</p><a class="btn" asp-action="Index">Buka dashboard food waste</a></div></div>
+    }
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr))">
+        @foreach (var b in Model.Bundles)
+        {
+            <partial name="_BundleTicket" model="new BundleTicketModel(b, true)" />
+        }
+    </div>
+}

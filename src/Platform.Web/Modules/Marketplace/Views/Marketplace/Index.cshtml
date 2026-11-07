@@ -1,0 +1,85 @@
+@using Platform.Web.Modules.Delivery.Contracts
+@model Platform.Web.Modules.Marketplace.ViewModels.MarketplaceIndexViewModel
+@{
+    ViewData["Title"] = "Cari grosir";
+    var withDeals = Model.Cards.Count(c => c.RescueDeals > 0);
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+
+<div class="page-head">
+    <div>
+        <h1>Cari grosir</h1>
+        <p class="lead">Grosir terverifikasi. Ongkir sudah dihitung dari jarak ke lokasi usaha Anda. Harga, minimum pesanan (MOQ), dan stok tersedia ditampilkan per produk.</p>
+    </div>
+    <div class="page-actions"><a class="btn btn-secondary" asp-controller="Map" asp-action="Index">@UiIcons.Svg("map", 18) Lihat di peta</a><a class="btn btn-tag" asp-controller="Deals" asp-action="Index">@UiIcons.Svg("badge-percent", 18) Promo anti-mubazir</a></div>
+</div>
+
+<form method="get" asp-controller="Marketplace" asp-action="Index" class="card tight mb-2">
+    <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr 1fr auto;align-items:end;gap:0 12px">
+        <div class="field mb-0"><label for="q">Cari grosir atau produk</label><div class="search-box">@UiIcons.Svg("search", 18)<input id="q" name="q" type="search" value="@Model.Query" placeholder="mis. susu, minyak, beras" /></div></div>
+        <div class="field mb-0"><label for="cat">Kategori</label>
+            <select id="cat" name="categoryId" data-autosubmit>
+                <option value="">Semua</option>
+                @foreach (var c in Model.Categories) { <option value="@c.Value" selected="@c.Selected">@c.Text</option> }
+            </select>
+        </div>
+        <div class="field mb-0"><label for="km">Jarak maksimal</label>
+            <select id="km" name="maxKm" data-autosubmit>
+                <option value="">Bebas</option>
+                @foreach (var km in new[] { 3.0, 5.0, 10.0, 20.0 }) { <option value="@km.ToString(inv)" selected="@(Model.MaxKm == km)">@km.ToString("0") km</option> }
+            </select>
+        </div>
+        <div class="field mb-0"><label for="ful">Pengambilan</label>
+            <select id="ful" name="fulfillment" data-autosubmit>
+                <option value="">Antar / ambil</option>
+                <option value="Delivery" selected="@(Model.Fulfillment == FulfillmentType.Delivery)">Bisa diantar</option>
+                <option value="Pickup" selected="@(Model.Fulfillment == FulfillmentType.Pickup)">Bisa ambil sendiri</option>
+            </select>
+        </div>
+        <button type="submit" class="btn">Cari</button>
+    </div>
+</form>
+
+@if (withDeals > 0)
+{
+    <div class="alert alert-tag">@UiIcons.Svg("badge-percent", 20)<div class="grow"><b>@withDeals grosir menayangkan promo anti-mubazir.</b> Barang mendekati kadaluarsa dengan harga miring, tanpa minimal pesanan. <a asp-controller="Deals" asp-action="Index"><b>Lihat semua promo</b></a></div></div>
+}
+
+@if (Model.Cards.Count == 0)
+{
+            <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("store", 30)</div><h3>Tidak ada grosir yang cocok</h3><p>Coba kata kunci lain atau longgarkan filter jarak dan pengambilan.</p><a class="btn" asp-action="Index">Reset filter</a></div></div>
+}
+
+<div class="grid grid-auto" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr))">
+    @foreach (var g in Model.Cards)
+    {
+        <a class="shop-card" asp-controller="Marketplace" asp-action="Wholesaler" asp-route-id="@g.BusinessId">
+            <div class="s-top">
+                <span class="s-logo">@g.Name[..1].ToUpperInvariant()</span>
+                <div><h3>@g.Name</h3><div class="s-addr">@g.Address</div></div>
+            </div>
+            @if (g.PreviewImages is { Count: > 0 })
+            {
+                <div class="s-thumbs">@foreach (var img in g.PreviewImages) { <partial name="_ProductThumb" model="new ProductThumbModel(img, null, 52)" /> }</div>
+            }
+            <div class="s-facts">
+                <div><small>Jarak</small><b>@(g.DistanceKm is double km ? km.ToString("0.0") + " km" : "—")</b></div>
+                <div><small>Ongkir</small><b>@(!g.OffersDelivery ? "Tidak diantar" : !g.DeliveryInRange ? "Di luar jangkauan" : Rupiah.Format(g.DeliveryFee))</b></div>
+                <div><small>Min. pesanan</small><b>@(g.MinOrderAmount > 0 ? Rupiah.Format(g.MinOrderAmount) : "Tanpa")</b></div>
+            </div>
+            @if (g.RescueDeals > 0)
+            {
+                <div class="s-promo">@UiIcons.Svg("leaf", 17) @g.RescueDeals promo anti-mubazir, hemat sampai @g.BestDiscountPercent%</div>
+            }
+            <div class="row small muted" style="gap:14px">
+                @if (g.OffersDelivery && g.DeliveryInRange) { <span>@UiIcons.Svg("truck", 15) Diantar@(g.TravelMinutes is int tm ? $" ±{tm} mnt" : "")</span> }
+                @if (g.OffersPickup) { <span>@UiIcons.Svg("hand-coins", 15) Ambil sendiri</span> }
+                <span>@UiIcons.Svg("package", 15) @g.ProductCount produk</span>
+            </div>
+            @if (g.MatchingProducts.Count > 0)
+            {
+                <div class="s-prods">@foreach (var m in g.MatchingProducts) { <span class="badge badge-ok">@m</span> }</div>
+            }
+        </a>
+    }
+</div>

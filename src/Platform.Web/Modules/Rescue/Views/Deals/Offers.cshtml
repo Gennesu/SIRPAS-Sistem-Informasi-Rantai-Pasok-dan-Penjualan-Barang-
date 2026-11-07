@@ -1,0 +1,39 @@
+@model IReadOnlyList<Platform.Web.Modules.Rescue.Contracts.OfferDto>
+@using Platform.Web.Modules.Rescue.Contracts
+@{
+    ViewData["Title"] = "Riwayat penawaran";
+    ViewData["Nav"] = "Deals/Index";
+}
+
+<div class="crumbs"><a asp-action="Index">Promo &amp; penawaran</a> @UiIcons.Svg("chevron-right", 14) <span>Riwayat</span></div>
+<div class="page-head"><div><h1>Riwayat penawaran</h1><p class="lead">Semua penawaran khusus yang pernah dikirim grosir kepada Anda.</p></div></div>
+
+@if (Model.Count == 0)
+{
+    <div class="card"><div class="empty"><div class="e-ico">@UiIcons.Svg("send", 30)</div><h3>Belum ada penawaran</h3><p>Grosir yang melihat Anda laris menjual suatu barang bisa mengirim penawaran khusus di sini.</p></div></div>
+}
+else
+{
+    <div class="card pad-0">
+        <div class="table-wrap">
+            <table class="table table-stack hover">
+                <thead><tr><th>Dari grosir</th><th>Paket</th><th>Status</th><th>Terkirim</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var o in Model)
+                {
+                    <tr>
+                        <td class="cell-title"><span class="name">@o.SellerName</span>@if (!string.IsNullOrEmpty(o.Message)) { <span class="sub">&ldquo;@o.Message&rdquo;</span> }</td>
+                        <td data-label="Paket">@o.BundleTitle @if (o.Bundle is not null) { <span class="sub">@Rupiah.Format(o.Bundle.Price) · hemat @o.Bundle.DiscountPercent%</span> }</td>
+                        <td data-label="Status"><span class="badge @(o.State == OfferState.Accepted ? "badge-ok" : o.State == OfferState.Sent ? "badge-info" : o.State == OfferState.Declined ? "badge-danger" : "badge-muted")">@RescueLabels.Offer(o.State)</span></td>
+                        <td data-label="Terkirim" class="muted small nowrap">@IdFormat.Stamp(o.CreatedAt)</td>
+                        <td class="right cell-actions">
+                            @if (o.State == OfferState.Sent) { <a class="btn btn-sm btn-tag" asp-action="Detail" asp-route-id="@o.BundleId" asp-route-offer="@o.Id">Lihat &amp; pesan</a> }
+                            else if (o.OrderId is int oid) { <a class="btn btn-sm btn-secondary" asp-controller="Orders" asp-action="Detail" asp-route-id="@oid">Lihat pesanan</a> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

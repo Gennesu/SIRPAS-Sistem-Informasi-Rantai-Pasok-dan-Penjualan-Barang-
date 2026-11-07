@@ -1,0 +1,7 @@
+SEBELUM restart: {'Users': 12, 'Businesses': 9, 'Products': 32, 'Orders': 9, 'ConsumerOrders': 9, 'Payments': 9, 'Sales': 133, 'StockReservations': 26, 'InventoryMovements': 219, 'CollectiveOrders': 1, 'AuditLogs': 356}
+stopped
+UP setelah 3s
+SESUDAH restart: {'Users': 12, 'Businesses': 9, 'Products': 32, 'Orders': 9, 'ConsumerOrders': 9, 'Payments': 9, 'Sales': 133, 'StockReservations': 26, 'InventoryMovements': 219, 'CollectiveOrders': 1, 'AuditLogs': 356}
+DATA SAMA: True
+['      Skema database V3 siap.', '      Data demo sudah ada; seeder dilewati.', '      Data demo V3 sudah ada; seeder V3 dilewati.']
+login setelah restart: 200 http://127.0.0.1:5088/Home/ConsumerDashboard

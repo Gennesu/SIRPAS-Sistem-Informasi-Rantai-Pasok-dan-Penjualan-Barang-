@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Biskuit kelapa 300 g">
+<title>Biskuit kelapa 300 g</title>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0d9"/><stop offset="1" stop-color="#fddaa6"/></linearGradient>
+<linearGradient id="sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<rect width="320" height="200" fill="url(#bg)"/>
+<circle cx="270" cy="36" r="46" fill="#fff" opacity=".3"/>
+<circle cx="48" cy="170" r="36" fill="#fff" opacity=".22"/>
+<ellipse cx="160" cy="181" rx="78" ry="8" fill="#000" opacity=".13"/>
+<rect x="80" y="54" width="160" height="104" rx="8" fill="#1c7ed6"/>
+<rect x="80" y="54" width="14" height="104" rx="4" fill="#1864ab"/><rect x="226" y="54" width="14" height="104" rx="4" fill="#1864ab"/>
+<rect x="80" y="54" width="160" height="104" rx="8" fill="url(#sh)"/>
+<circle cx="132" cy="106" r="30" fill="#e2a665"/><circle cx="132" cy="106" r="30" fill="none" stroke="#b97b3a" stroke-width="3" stroke-dasharray="3 5"/>
+<circle cx="122" cy="98" r="3" fill="#8a5a2b"/><circle cx="140" cy="96" r="3" fill="#8a5a2b"/><circle cx="130" cy="114" r="3" fill="#8a5a2b"/><circle cx="145" cy="112" r="3" fill="#8a5a2b"/><circle cx="118" cy="114" r="3" fill="#8a5a2b"/>
+<text x="196" y="100" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="15" fill="#ffffff" >BISKUIT</text><text x="196" y="118" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="12" fill="#ffe8a3" >KELAPA</text><text x="196" y="140" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="10" fill="#ffffff" >300 g</text>
+</svg>

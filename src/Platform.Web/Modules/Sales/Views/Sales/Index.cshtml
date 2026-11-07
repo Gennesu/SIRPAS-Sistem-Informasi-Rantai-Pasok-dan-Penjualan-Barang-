@@ -1,0 +1,196 @@
+@model Platform.Web.Modules.Reporting.Contracts.SalesReportDto
+@{
+    var selection = ViewData["Selection"] as PeriodSelection
+        ?? new PeriodSelection(PeriodPreset.Today, null, null);
+    ViewData["Title"] = "Riwayat penjualan";
+}
+
+<div class="page-head">
+    <div>
+        <h1>Riwayat penjualan</h1>
+        <p class="lead">
+            Periode: <b>@Model.Range.Label</b>
+            (@WibTime.Format(Model.Range.From) s.d. @WibTime.Format(Model.Range.To), WIB)
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <a class="btn" asp-controller="Pos" asp-action="Index">
+            @UiIcons.Svg("calculator", 18) Buka kasir
+        </a>
+    </div>
+</div>
+
+<partial name="_PeriodFilter" model="selection" />
+
+<div class="grid grid-4 kpis mt-1">
+    <div class="kpi">
+        <div class="row-between">
+            <span class="k-label">Transaksi</span>
+            <span class="k-ico">@UiIcons.Svg("receipt", 20)</span>
+        </div>
+        <div class="k-value">@Model.Transactions</div>
+        <div class="k-note">@Model.ItemsSold item terjual.</div>
+    </div>
+
+    <div class="kpi tag">
+        <div class="row-between">
+            <span class="k-label">Omzet</span>
+            <span class="k-ico">@UiIcons.Svg("wallet", 20)</span>
+        </div>
+        <div class="k-value">@Rupiah.Format(Model.Revenue)</div>
+    </div>
+
+    <div class="kpi">
+        <div class="row-between">
+            <span class="k-label">Modal barang terjual</span>
+            <span class="k-ico">@UiIcons.Svg("package", 20)</span>
+        </div>
+        <div class="k-value">@Rupiah.Format(Model.Cogs)</div>
+    </div>
+
+    <div class="kpi good">
+        <div class="row-between">
+            <span class="k-label">Keuntungan kotor</span>
+            <span class="k-ico">@UiIcons.Svg("trending-up", 20)</span>
+        </div>
+        <div class="k-value">@Rupiah.Format(Model.GrossProfit)</div>
+    </div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-head">
+        <h2>@UiIcons.Svg("flame", 21) Per produk</h2>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-stack">
+            <thead>
+                <tr>
+                    <th>Produk</th>
+                    <th class="right">Qty</th>
+                    <th class="right">Harga rata-rata</th>
+                    <th class="right">Omzet</th>
+                    <th class="right">Modal</th>
+                    <th class="right">Untung</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var l in Model.Lines)
+                {
+                    <tr>
+                        <td class="cell-title">
+                            <span class="name">@l.ProductName</span>
+                        </td>
+
+                        <td class="right num" data-label="Qty">@l.Qty</td>
+
+                        <td class="right num" data-label="Harga rata-rata">
+                            @Rupiah.Format(l.AvgPrice)
+                        </td>
+
+                        <td class="right num" data-label="Omzet">
+                            @Rupiah.Format(l.Revenue)
+                        </td>
+
+                        <td class="right num" data-label="Modal">
+                            @Rupiah.Format(l.Cogs)
+                        </td>
+
+                        <td class="right num" data-label="Untung">
+                            <b style="color:@(l.Profit >= 0 ? "var(--brand-700)" : "var(--red-700)")">
+                                @Rupiah.Format(l.Profit)
+                            </b>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Lines.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty">
+                                <div class="e-ico">@UiIcons.Svg("receipt", 28)</div>
+                                <h3>Belum ada penjualan pada periode ini</h3>
+                                <p>Buka kasir untuk mencatat penjualan.</p>
+                                <a class="btn" asp-controller="Pos" asp-action="Index">
+                                    Buka kasir
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mt-2">
+    <div class="card-head">
+        <h2>@UiIcons.Svg("list", 21) Daftar transaksi</h2>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-stack hover">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>Waktu (WIB)</th>
+                    <th>Bayar</th>
+                    <th class="right">Item</th>
+                    <th class="right">Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var s in Model.Sales)
+                {
+                    <tr>
+                        <td class="cell-title">
+                            <a class="name"
+                               asp-controller="Sales"
+                               asp-action="Receipt"
+                               asp-route-id="@s.Id">
+                                @s.Number
+                            </a>
+                        </td>
+
+                        <td data-label="Waktu" class="small">
+                            @WibTime.FormatDateTime(s.SoldAtUtc)
+                        </td>
+
+                        <td data-label="Bayar">
+                            <span class="badge">
+                                @Platform.Web.Modules.Sales.Contracts.PaymentLabels.Method(s.PaymentMethod)
+                            </span>
+                        </td>
+
+                        <td class="right num" data-label="Item">@s.Items</td>
+
+                        <td class="right num" data-label="Total">
+                            <b>@Rupiah.Format(s.Total)</b>
+                        </td>
+
+                        <td class="right cell-actions">
+                            <a class="btn btn-sm btn-secondary"
+                               asp-controller="Sales"
+                               asp-action="Receipt"
+                               asp-route-id="@s.Id">
+                                @UiIcons.Svg("printer", 15) Struk
+                            </a>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Sales.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="muted">Belum ada transaksi.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

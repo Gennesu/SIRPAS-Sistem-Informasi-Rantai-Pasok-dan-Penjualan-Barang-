@@ -1,0 +1,59 @@
+@model IReadOnlyList<Platform.Web.Modules.Consumers.Contracts.ShopCardDto>
+@{
+    ViewData["Title"] = "Belanja di warung";
+    var promos = ViewData["Promos"] as IReadOnlyList<Platform.Web.Modules.Consumers.Contracts.PromoDealDto> ?? Array.Empty<Platform.Web.Modules.Consumers.Contracts.PromoDealDto>();
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+<div class="page-head">
+    <div><h1>Belanja di warung</h1><p class="lead">Warung terverifikasi yang punya barang tersedia dan belum kedaluwarsa. Urut dari yang terdekat bila lokasi Anda sudah diisi di profil.</p></div>
+    <div class="page-actions"><a class="btn btn-tag" asp-action="Promos">@UiIcons.Svg("badge-percent", 18) Promo layak konsumsi</a></div>
+</div>
+
+<form method="get" class="card" role="search">
+    <div class="field mb-0"><label for="q">Cari warung atau produk</label>
+        <div class="row" style="gap:10px"><input id="q" name="q" value="@ViewData["Query"]" placeholder="mis. kopi, teh, nama warung" /><button class="btn" type="submit">Cari</button></div>
+    </div>
+</form>
+
+@if (promos.Count > 0 && string.IsNullOrWhiteSpace(ViewData["Query"] as string))
+{
+    <div class="section-title mt-2"><span>@UiIcons.Svg("badge-percent", 22)</span><h2>Promo masih layak konsumsi</h2></div>
+    <div class="grid grid-3">
+        @foreach (var d in promos)
+        {
+            <a class="card" asp-action="Detail" asp-route-id="@d.ShopId" style="text-decoration:none">
+                <div class="row-between"><b>@d.ProductName</b><span class="badge badge-warn">-@d.Percent%</span></div>
+                <div class="muted small">@d.ShopName</div>
+                <div class="mt-1"><s class="muted">@Rupiah.Format(d.RegularPrice)</s> <b>@Rupiah.Format(d.PromoPrice)</b> / @d.BaseUnitName</div>
+                <div class="muted small">@d.PromoQty @d.BaseUnitName promo &middot; kedaluwarsa @WibTime.Format(d.NearestExpiry) (@d.DaysLeft hari lagi)</div>
+            </a>
+        }
+    </div>
+}
+
+<div class="section-title mt-2"><span>@UiIcons.Svg("store", 22)</span><h2>Warung</h2></div>
+@if (Model.Count == 0)
+{
+    <div class="card empty"><h3>Tidak ada warung yang cocok</h3><p class="muted">Coba kata kunci lain, atau tunggu warung menambah stok.</p></div>
+}
+else
+{
+    <div class="grid grid-3">
+        @foreach (var s in Model)
+        {
+            <a class="card" asp-action="Detail" asp-route-id="@s.BusinessId" style="text-decoration:none">
+                <div class="row-between"><b>@s.Name</b>@if (s.PromoCount > 0) { <span class="badge badge-warn">@s.PromoCount promo</span> }</div>
+                <div class="muted small">@s.Address</div>
+                <div class="mt-1 small">
+                    @s.ProductCount produk tersedia
+                    @if (s.DistanceKm is double km) { <text> &middot; @km.ToString("0.0", inv) km</text> }
+                </div>
+                <div class="small muted">
+                    Ambil sendiri@(s.OffersPickup ? "" : " (tidak tersedia)") &middot;
+                    @(s.OffersDelivery ? (s.DeliveryAvailable ? "antar " + Rupiah.Format(s.DeliveryFee) : "antar: " + (s.DeliveryNote ?? "di luar jangkauan")) : "tanpa antar")
+                </div>
+                @if (s.MatchingProducts.Count > 0) { <div class="small mt-1">Cocok: @string.Join(", ", s.MatchingProducts.Take(3))</div> }
+            </a>
+        }
+    </div>
+}

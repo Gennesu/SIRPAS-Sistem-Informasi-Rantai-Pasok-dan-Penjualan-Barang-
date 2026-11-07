@@ -1,0 +1,78 @@
+@model Platform.Web.Modules.Sales.Contracts.SaleReceiptDto
+@using Platform.Web.Modules.Sales.Contracts
+@{
+    ViewData["Title"] = "Struk " + Model.Number;
+    ViewData["Nav"] = "Sales/Index";
+    var fresh = Context.Request.Query.ContainsKey("baru");
+    var text = ReceiptText.Build(Model);
+    var wib = WibTime.ToWib(Model.SoldAt);
+}
+@section Styles { <style id="page-size">@@page { size: 80mm auto; margin: 3mm; }</style> }
+
+@if (fresh)
+{
+    <div class="paid-banner mt-2">
+        <div><h2>@UiIcons.Svg("circle-check", 24) Transaksi berhasil</h2><div style="color:#a9c9b8">@Model.Number &middot; @PaymentLabels.Method(Model.PaymentMethod) &middot; @Rupiah.Format(Model.Total)</div></div>
+        @if (Model.Change > 0) { <div class="chg"><span>Kembalian</span><b>@Rupiah.Format(Model.Change)</b></div> }
+    </div>
+}
+
+<div class="page-head no-print">
+    <div><h1>Struk penjualan</h1><p class="lead">@Model.Number &middot; @IdFormat.StampWithYear(Model.SoldAt) WIB</p></div>
+    <div class="page-actions"><a class="btn" asp-controller="Pos" asp-action="Index">@UiIcons.Svg("plus", 18) Transaksi baru</a><a class="btn btn-secondary" asp-action="Index">@UiIcons.Svg("receipt", 18) Riwayat</a></div>
+</div>
+
+<div class="receipt-stage">
+    <div class="receipt-paper">
+        <article class="receipt" id="receipt" aria-label="Struk @Model.Number">
+            <div class="r-center">
+                <div class="r-store">@Model.StoreName</div>
+                @if (!string.IsNullOrWhiteSpace(Model.StoreAddress)) { <div>@Model.StoreAddress</div> }
+                @if (!string.IsNullOrWhiteSpace(Model.StorePhone)) { <div>Telp. @Model.StorePhone</div> }
+            </div>
+            <hr class="r-sep" />
+            <div class="r-row"><span>No</span><span>@Model.Number</span></div>
+            <div class="r-row"><span>Tanggal</span><span>@wib.ToString("dd/MM/yyyy HH.mm")</span></div>
+            @if (!string.IsNullOrWhiteSpace(Model.CashierName)) { <div class="r-row"><span>Kasir</span><span>@Model.CashierName</span></div> }
+            <hr class="r-sep" />
+            @foreach (var l in Model.Lines)
+            {
+                <div class="r-item">
+                    <div class="r-name">@l.ProductName</div>
+                    <div class="r-calc"><span>@l.QtyBase @(string.IsNullOrEmpty(l.UnitName) ? "" : l.UnitName + " ")x @Rupiah.Number(l.UnitPrice, 0)</span><span>@Rupiah.Number(l.Subtotal, 0)</span></div>
+                </div>
+            }
+            <hr class="r-sep" />
+            <div class="r-row"><span>Total (@Model.TotalItems item)</span><span class="r-total">@Rupiah.Format(Model.Total)</span></div>
+            <div class="r-row"><span>@PaymentLabels.Method(Model.PaymentMethod)</span><span>@Rupiah.Format(Model.Paid)</span></div>
+            @if (Model.Change > 0) { <div class="r-row"><span>Kembali</span><span>@Rupiah.Format(Model.Change)</span></div> }
+            @if (Model.IsVoided) { <div class="r-stamp">DIBATALKAN</div> }
+            <hr class="r-sep" />
+            <svg class="barcode" id="barcode" data-code="@Model.Number" role="img" aria-label="Kode batang @Model.Number"></svg>
+            <div class="r-center" style="letter-spacing:.12em;font-size:.9em">@Model.Number</div>
+            <div class="r-foot">Terima kasih sudah berbelanja!<br />Barang yang sudah dibeli<br />harap diperiksa kembali.</div>
+        </article>
+    </div>
+
+    <aside class="receipt-actions no-print">
+        <div class="card">
+            <div class="card-head"><h2>@UiIcons.Svg("printer", 21) Cetak &amp; bagikan</h2></div>
+            <div class="field">
+                <span class="label">Ukuran kertas</span>
+                <div class="seg" role="radiogroup" aria-label="Ukuran kertas">
+                    <input type="radio" name="paper" id="p80" value="80" checked /><label for="p80">80 mm</label>
+                    <input type="radio" name="paper" id="p58" value="58" /><label for="p58">58 mm</label>
+                </div>
+            </div>
+            <div class="stack" style="--gap:10px">
+                <button type="button" class="btn btn-lg btn-block" id="btn-print">@UiIcons.Svg("printer", 20) Cetak struk</button>
+                <a class="btn btn-secondary btn-block" id="btn-wa" target="_blank" rel="noopener" href="https://wa.me/?text=@Uri.EscapeDataString(text)">@UiIcons.Svg("message-circle", 18) Kirim lewat WhatsApp</a>
+                <button type="button" class="btn btn-secondary btn-block" data-copy="@text">@UiIcons.Svg("copy", 18) Salin teks struk</button>
+            </div>
+            <p class="hint mt-2 mb-0">Dialog cetak peramban juga bisa dipakai untuk menyimpan PDF. Untuk printer thermal Bluetooth/USB, pilih printer tersebut lalu atur skala 100%.</p>
+        </div>
+        <div class="card"><dl class="kv"><dt>Metode</dt><dd>@PaymentLabels.Method(Model.PaymentMethod)</dd><dt>Dibayar</dt><dd>@Rupiah.Format(Model.Paid)</dd><dt>Kembalian</dt><dd>@Rupiah.Format(Model.Change)</dd></dl></div>
+    </aside>
+</div>
+
+@section Scripts { <script src="~/js/receipt.js" asp-append-version="true"></script> }

@@ -1,0 +1,89 @@
+@model Platform.Web.Modules.Auth.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Masuk";
+    ViewData["Bare"] = true;
+    var demo = ViewData["DemoAccounts"] as DemoAccount[];
+}
+
+<div class="auth">
+    <section class="auth-hero"><div class="auth-hero-inner">
+        <a class="brand" asp-controller="Home" asp-action="Index">
+            <span class="brand-mark">@UiIcons.Svg("leaf", 22)</span>
+            <span>SIRPAS<small>Sistem Informasi Rantai Pasok</small></span>
+        </a>
+
+        <div style="position:relative;z-index:2">
+            <h1>Stok laku, <em>bukan terbuang.</em></h1>
+            <p class="lead">Satu tempat bagi grosir dan warung: kasir, stok, pesan barang, sampai menyelamatkan produk yang hampir kadaluarsa.</p>
+            <ul class="auth-points">
+                <li><span class="ap-ico">@UiIcons.Svg("badge-percent", 21)</span><span><b>Paket anti-mubazir</b><span>Barang mendekati kadaluarsa dijual murah, langsung ke warung yang paling laku menjualnya.</span></span></li>
+                <li><span class="ap-ico">@UiIcons.Svg("truck", 21)</span><span><b>Ongkir sesuai jarak, lacak per fase</b><span>Lihat truk bergerak di peta dari grosir menuju warung.</span></span></li>
+                <li><span class="ap-ico">@UiIcons.Svg("receipt", 21)</span><span><b>Kasir &amp; struk siap cetak</b><span>Struk thermal 58/80 mm, kirim lewat WhatsApp.</span></span></li>
+            </ul>
+        </div>
+
+        <div class="auth-decor" aria-hidden="true">
+            <div class="d-ticket"><span class="daytag sm band-critical"><b>6</b><span>hari</span></span><div><b>Susu UHT Cokelat</b><small>Batch 24 kotak</small></div><span class="off">-40%</span></div>
+            <div class="d-ticket" style="margin-left:36px"><span class="daytag sm band-watch"><b>20</b><span>hari</span></span><div><b>Susu UHT Cokelat</b><small>Penawaran khusus</small></div><span class="off">-20%</span></div>
+        </div>
+    </div></section>
+
+    <section class="auth-panel">
+        <div class="auth-card">
+            <h2>Masuk</h2>
+            <p class="muted">Selamat datang kembali. Masuk untuk melanjutkan.</p>
+
+            <form asp-controller="Account" asp-action="Login" method="post" id="login-form" data-once>
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+                <div class="field">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" type="email" autocomplete="email" placeholder="nama@usaha.com" />
+                    <span asp-validation-for="Email" class="field-validation-error"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="Password"></label>
+                    <input asp-for="Password" autocomplete="current-password" placeholder="Kata sandi" />
+                    <span asp-validation-for="Password" class="field-validation-error"></span>
+                </div>
+                <label class="check mb-2"><input asp-for="RememberMe" /> Ingat saya di perangkat ini</label>
+
+                <button type="submit" class="btn btn-lg btn-block">Masuk</button>
+            </form>
+
+            <p class="muted mt-2">Belum punya akun? <a asp-controller="Business" asp-action="Register"><b>Daftarkan usaha</b></a> atau <a asp-controller="Consumer" asp-action="Register"><b>daftar sebagai pembeli</b></a></p>
+
+            @if (demo is not null)
+            {
+                <div class="demo-box">
+                    <h3>@UiIcons.Svg("sparkles", 18) Mode demo: masuk dengan satu ketukan</h3>
+                    <p class="muted small mb-0">Data dummy aktif. Kata sandi semua akun: <code>@DemoAccounts.Password</code></p>
+                    <div class="demo-list">
+                        @foreach (var account in demo)
+                        {
+                            <button type="button" class="demo-btn" data-demo-email="@account.Email">
+                                <span class="role-chip @(account.Role == "Agen" ? "grosir" : account.Role == "Admin" ? "admin" : "")">@account.Role</span>
+                                <span><b>@account.Name</b><small>@account.Email</small></span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        // Tombol akun demo hanya mengisi formulir lalu mengirimnya seperti login biasa (tidak ada jalur login khusus di server).
+        document.querySelectorAll('[data-demo-email]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var form = document.getElementById('login-form');
+                form.querySelector('[name=Email]').value = btn.getAttribute('data-demo-email');
+                form.querySelector('[name=Password]').value = '@DemoAccounts.Password';
+                form.requestSubmit();
+            });
+        });
+    </script>
+}

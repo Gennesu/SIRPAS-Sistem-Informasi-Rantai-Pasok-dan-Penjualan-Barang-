@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 0 0 320 200" role="img" aria-label="Ayam"><title>Ayam</title>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9f4ec"/><stop offset="1" stop-color="#cfe5d5"/></linearGradient><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdf8"/><stop offset="1" stop-color="#ece1cc"/></linearGradient></defs>
+<rect width="320" height="200" fill="url(#bg)"/><circle cx="52" cy="40" r="40" fill="#fff" opacity=".3"/><circle cx="276" cy="164" r="38" fill="#fff" opacity=".22"/>
+<ellipse cx="160" cy="184" rx="90" ry="8" fill="#000" opacity=".14"/><path d="M146 164v16M172 164v16M132 181h20M158 181h20" stroke="#f0a020" stroke-width="5" stroke-linecap="round"/>
+<path d="M96 112Q58 114 50 82Q62 74 74 84Q82 100 106 106Z" fill="#f4ecdc"/><path d="M92 106Q60 94 64 60Q72 54 80 62Q80 78 100 92Z" fill="#e8dfcd"/>
+<path d="M92 112Q92 160 160 166Q226 166 234 114Q238 84 210 72Q168 58 126 74Q92 86 92 112Z" fill="url(#b)" stroke="#e2d6bf" stroke-width="1.5"/>
+<path d="M122 110Q150 96 188 112Q182 146 150 148Q120 140 122 110Z" fill="#f0e5cf" stroke="#e0d2b6"/><path d="M138 120Q158 114 176 122M136 132Q156 126 174 134" stroke="#dccdaf" stroke-width="2" fill="none" stroke-linecap="round"/>
+<circle cx="214" cy="70" r="24" fill="#fffdf8" stroke="#e2d6bf" stroke-width="1.5"/><g fill="#d6382c"><circle cx="204" cy="46" r="8"/><circle cx="216" cy="42" r="9"/><circle cx="228" cy="48" r="7"/></g>
+<path d="M236 66L256 74L236 80Z" fill="#f2a31b"/><path d="M232 82Q238 98 228 100Q222 92 226 82Z" fill="#d6382c"/><circle cx="224" cy="66" r="3.4" fill="#1b2b24"/><circle cx="225" cy="65" r="1" fill="#fff"/>
+</svg>

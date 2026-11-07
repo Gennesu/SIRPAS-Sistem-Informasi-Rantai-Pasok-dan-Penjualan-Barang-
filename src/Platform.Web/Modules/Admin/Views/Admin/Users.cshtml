@@ -1,0 +1,287 @@
+
+@model IReadOnlyList<Platform.Web.Modules.Admin.Contracts.AdminUserDto>
+
+@{
+    ViewData["Title"] = "Pengguna";
+
+    var activeCount = Model.Count(u => u.IsActive);
+    var inactiveCount = Model.Count(u => !u.IsActive);
+    var adminCount = Model.Count(u =>
+        string.Equals(u.Role, "ADMIN", StringComparison.OrdinalIgnoreCase));
+    var retailCount = Model.Count(u =>
+        string.Equals(u.Role, "RETAIL", StringComparison.OrdinalIgnoreCase));
+    var wholesaleCount = Model.Count(u =>
+        string.Equals(u.Role, "GROSSIER", StringComparison.OrdinalIgnoreCase));
+
+    string RoleLabel(string role) => role.ToUpperInvariant() switch
+    {
+        "ADMIN" => "Admin Platform",
+        "RETAIL" => "Warung",
+        "GROSSIER" => "Agen",
+        _ => role
+    };
+
+    string RoleTone(string role) => role.ToUpperInvariant() switch
+    {
+        "ADMIN" => "badge-purple",
+        "RETAIL" => "badge-ok",
+        "GROSSIER" => "badge-info",
+        _ => "badge-muted"
+    };
+}
+
+<div class="page-head admin-page-head">
+    <div>
+        <span class="admin-eyebrow">MANAJEMEN AKUN</span>
+        <h1>Pengguna</h1>
+        <p class="lead">
+            Kelola akun administrator, warung, dan grosir beserta status aksesnya.
+        </p>
+    </div>
+
+    <div class="page-actions">
+        <span class="badge badge-info">
+            @Model.Count pengguna ditemukan
+        </span>
+    </div>
+</div>
+
+<div class="admin-kpis admin-kpis-four">
+    <div class="admin-metric">
+        <div class="admin-metric-icon">
+            @UiIcons.Svg("users", 22)
+        </div>
+        <div>
+            <span>Total pengguna</span>
+            <strong>@Model.Count</strong>
+            <small>Akun dalam daftar</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon">
+            @UiIcons.Svg("user-check", 22)
+        </div>
+        <div>
+            <span>Akun aktif</span>
+            <strong>@activeCount</strong>
+            <small>Dapat mengakses sistem</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-gold">
+            @UiIcons.Svg("user-round-x", 22)
+        </div>
+        <div>
+            <span>Akun nonaktif</span>
+            <strong>@inactiveCount</strong>
+            <small>Akses dinonaktifkan</small>
+        </div>
+    </div>
+
+    <div class="admin-metric">
+        <div class="admin-metric-icon admin-metric-purple">
+            @UiIcons.Svg("shield-check", 22)
+        </div>
+        <div>
+            <span>Administrator</span>
+            <strong>@adminCount</strong>
+            <small>Akun pengelola platform</small>
+        </div>
+    </div>
+</div>
+
+<section class="card admin-panel mt-2">
+    <div class="card-head">
+        <div>
+            <h2>
+                @UiIcons.Svg("chart-no-axes-combined", 21)
+                Komposisi peran
+            </h2>
+            <p class="muted small mb-0">
+                Pembagian pengguna berdasarkan peran yang tersimpan.
+            </p>
+        </div>
+    </div>
+
+    <div class="admin-role-summary">
+        <div class="admin-role-item">
+            <span class="admin-role-mark role-retail"></span>
+            <span>Warung</span>
+            <strong>@retailCount</strong>
+        </div>
+
+        <div class="admin-role-item">
+            <span class="admin-role-mark role-wholesale"></span>
+            <span>Agen</span>
+            <strong>@wholesaleCount</strong>
+        </div>
+
+        <div class="admin-role-item">
+            <span class="admin-role-mark role-admin"></span>
+            <span>Admin Platform</span>
+            <strong>@adminCount</strong>
+        </div>
+    </div>
+</section>
+
+<section class="card admin-table-card mt-2">
+    <div class="card-head admin-table-heading">
+        <div>
+            <h2>
+                @UiIcons.Svg("contact-round", 21)
+                Daftar pengguna
+            </h2>
+            <p class="muted small mb-0">
+                Informasi akun, usaha terkait, dan login terakhir.
+            </p>
+        </div>
+
+        <span class="badge">@Model.Count akun</span>
+    </div>
+
+    <div class="table-wrap">
+        <table class="table table-stack hover admin-table admin-user-table">
+            <thead>
+                <tr>
+                    <th>Pengguna</th>
+                    <th>Peran</th>
+                    <th>Usaha</th>
+                    <th>Login terakhir (WIB)</th>
+                    <th>Status akun</th>
+                    <th>Tindakan</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td data-label="Pengguna" class="cell-title">
+                            <div class="admin-user-cell">
+                                <div class="admin-avatar">
+                                    @u.FullName.Trim().FirstOrDefault()
+                                </div>
+
+                                <div class="admin-user-identity">
+                                    <strong>@u.FullName</strong>
+                                    <span>@u.Email</span>
+                                    <small>ID pengguna #@u.Id</small>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td data-label="Peran">
+                            <span class="badge @RoleTone(u.Role)">
+                                @RoleLabel(u.Role)
+                            </span>
+                        </td>
+
+                        <td data-label="Usaha">
+                            @if (!string.IsNullOrWhiteSpace(u.BusinessName))
+                            {
+                                <div class="admin-object">
+                                    <strong>@u.BusinessName</strong>
+                                    <span>Usaha terhubung</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="muted small">Belum terhubung</span>
+                            }
+                        </td>
+
+                        <td data-label="Login terakhir">
+                            @if (u.LastLoginAt is DateTime loginAt)
+                            {
+                                <div class="admin-time">
+                                    <strong>@WibTime.FormatDateTime(loginAt)</strong>
+                                    <span>Waktu Indonesia Barat</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="badge badge-muted">Belum login</span>
+                            }
+                        </td>
+
+                        <td data-label="Status akun">
+                            @if (u.IsActive)
+                            {
+                                <span class="badge badge-ok">
+                                    <span class="admin-status-dot"></span>
+                                    Aktif
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-danger">
+                                    <span class="admin-status-dot"></span>
+                                    Nonaktif
+                                </span>
+                            }
+                        </td>
+
+                        <td data-label="Tindakan">
+                            <form asp-controller="Admin"
+                                  asp-action="SetUserActive"
+                                  method="post"
+                                  class="admin-action-form"
+                                  data-once
+                                  data-confirm="@(u.IsActive
+                                      ? "Nonaktifkan akun " + u.Email + "?"
+                                      : "Aktifkan akun " + u.Email + "?")">
+
+                                <input type="hidden"
+                                       name="id"
+                                       value="@u.Id" />
+
+                                <input type="hidden"
+                                       name="active"
+                                       value="@((!u.IsActive).ToString().ToLowerInvariant())" />
+
+                                <button type="submit"
+                                        class="btn btn-sm @(u.IsActive
+                                            ? "btn-danger"
+                                            : "btn-secondary")">
+
+                                    @if (u.IsActive)
+                                    {
+                                        @UiIcons.Svg("user-round-x", 16)
+                                        <text>Nonaktifkan</text>
+                                    }
+                                    else
+                                    {
+                                        @UiIcons.Svg("user-check", 16)
+                                        <text>Aktifkan</text>
+                                    }
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="admin-empty">
+                                @UiIcons.Svg("users", 30)
+                                <strong>Belum ada pengguna</strong>
+                                <span>
+                                    Data pengguna akan tampil setelah tersedia di sistem.
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="admin-table-foot">
+        <span>Menampilkan @Model.Count pengguna.</span>
+        <span>Perubahan status akun mengikuti aturan backend.</span>
+    </div>
+</section>
