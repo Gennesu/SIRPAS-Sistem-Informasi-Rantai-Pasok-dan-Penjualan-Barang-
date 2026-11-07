@@ -92,18 +92,6 @@ Semua akun demo menggunakan kata sandi **`Demo12345`** selama data demo aktif.
 
 > Akun dan kata sandi demo hanya untuk demonstrasi lokal. Ganti kredensial sebelum aplikasi dipakai di lingkungan publik.
 
-## Konfigurasi penting
-
-| Pengaturan | Nilai bawaan | Keterangan |
-|---|---|---|
-| `ConnectionStrings:Default` | Kosong | Connection string database. Gunakan User Secrets saat lokal atau `ConnectionStrings__Default` sebagai variabel lingkungan di hosting. |
-| `Database:Provider` | `MySql` | Pilihan provider: `MySql`, `Sqlite`, atau `Postgres`. |
-| `Database:Mode` | `EnsureCreated` | Membuat skema bila database masih kosong. `EnsureCreated` bukan mekanisme migrasi untuk memperbarui skema lama. |
-| `Demo:SeedDummyData` | `true` | Mengisi data demo saat database baru disiapkan. |
-| `Demo:ResetDatabaseOnStart` | `false` | Jika diaktifkan, seluruh database aktif dihapus saat aplikasi mulai. Jangan aktifkan pada database yang berisi data penting. |
-| `Map:OnlineTiles` | `true` | Mengaktifkan tile OpenStreetMap; `false` memakai tampilan peta lokal. |
-| `Seed:AdminEmail`, `Seed:AdminPassword` | Kosong | Kredensial untuk membuat akun admin awal. Atur secara rahasia bila menyiapkan lingkungan tanpa akun demo. |
-
 ## Publish dan hosting
 
 Hosting harus mendukung **ASP.NET Core/.NET 10** dan menyediakan database MySQL/MariaDB yang dapat diakses dari aplikasi web. Connection string lokal XAMPP tidak dapat dipakai oleh server hosting; gunakan host, port, database, dan kredensial yang diberikan penyedia hosting.
@@ -123,26 +111,3 @@ Jalankan tes otomatis dengan:
 ```powershell
 dotnet test
 ```
-
-Skrip pemeriksaan HTTP dan pemulihan crash tersedia di `tests/http/`. Beberapa skrip memerlukan aplikasi yang berjalan dan opsi/alamat tertentu; lihat komentar di dalam skrip sebelum menjalankannya.
-
-## Struktur repository
-
-```text
-src/Platform.Web/       Aplikasi ASP.NET Core MVC
-  Modules/              Modul auth, usaha, katalog, stok, pesanan, penjualan, peternakan, dan lainnya
-  Data/                 DbContext dan seeder database/data demo
-  wwwroot/              CSS, JavaScript, dan aset statis
-tests/                  Tes otomatis dan skrip pemeriksaan HTTP
-docs/                   SKPL, dokumentasi tahap, dan bukti pengujian
-main.py                 Peluncur lokal opsional
-```
-
-## Dokumentasi
-
-- [SKPL dan kebutuhan sistem](docs/V3-SKPL.md)
-- [Dokumentasi Tahap 1](docs/FASE-1.md)
-- [Demo Tahap 2](docs/FASE-2-DEMO.md)
-- [Marketplace Tahap 3](docs/FASE-3-MARKETPLACE.md)
-- [Food waste Tahap 4](docs/FASE-4-FOOD-WASTE.md)
-- [Bukti pengujian](docs/bukti/)
