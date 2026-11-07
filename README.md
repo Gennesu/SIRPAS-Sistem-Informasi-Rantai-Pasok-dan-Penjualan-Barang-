@@ -1,5 +1,7 @@
 # Platform Rantai Pasok Pangan V3 — Grosir · Warung · Pembeli
 
+Proyek Kompetisi Mahasiswa Muhammadiyah (KMM) AST-PTMA.
+
 Aplikasi web lokal untuk marketplace **grosir → warung → pembeli akhir**, **stok dengan reservasi dan batch (FEFO)**, **checkout dan pembayaran demo yang tahan klik ganda**, **kasir (POS)**, **promo anti-mubazir**, serta laporan keuangan dan food waste.
 Dibangun di atas V2 (ASP.NET Core MVC + EF Core + MySQL sebagai database utama, modular monolith); fitur V2 tetap berfungsi.
 
