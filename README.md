@@ -91,23 +91,3 @@ Semua akun demo menggunakan kata sandi **`Demo12345`** selama data demo aktif.
 | Pembeli | `pembeli2@demo.test` | Siti Konsumen |
 
 > Akun dan kata sandi demo hanya untuk demonstrasi lokal. Ganti kredensial sebelum aplikasi dipakai di lingkungan publik.
-
-## Publish dan hosting
-
-Hosting harus mendukung **ASP.NET Core/.NET 10** dan menyediakan database MySQL/MariaDB yang dapat diakses dari aplikasi web. Connection string lokal XAMPP tidak dapat dipakai oleh server hosting; gunakan host, port, database, dan kredensial yang diberikan penyedia hosting.
-
-Buat paket publish:
-
-```powershell
-dotnet publish src/Platform.Web/Platform.Web.csproj -c Release -o .\artifacts\publish
-```
-
-Unggah **isi** folder `artifacts/publish` ke direktori aplikasi sesuai petunjuk hosting. Atur variabel lingkungan `ConnectionStrings__Default` di panel hosting. Untuk lingkungan publik, nonaktifkan data demo dengan `Demo__SeedDummyData=false` dan siapkan admin melalui `Seed__AdminEmail` serta `Seed__AdminPassword`. Pastikan `Demo__ResetDatabaseOnStart` tidak diaktifkan. Database produksi harus dibuat dan dicadangkan melalui layanan database hosting.
-
-## Pengujian
-
-Jalankan tes otomatis dengan:
-
-```powershell
-dotnet test
-```
