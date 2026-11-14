@@ -46,6 +46,8 @@ Dari folder utama repository:
 
 ```powershell
 python main.py
+atau
+dotnet run --project src/Platform.Web
 ```
 
 `main.py` menjalankan aplikasi di **http://localhost:5080**. Jika port itu sedang dipakai, peluncur memilih port kosong berikutnya dan menampilkan alamat yang benar. Pada pemakaian pertama, aplikasi membuat skema database dan mengisi data demo. Untuk membuka aplikasi dari perangkat lain di Wi-Fi yang sama, jalankan `python main.py --lan`. Jika ingin menjalankan tanpa Python, `dotnet run --project src/Platform.Web` juga memakai SQLite melalui profil Development.
