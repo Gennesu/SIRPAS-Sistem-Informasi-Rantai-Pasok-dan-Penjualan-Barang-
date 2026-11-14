@@ -666,6 +666,14 @@
         cartEl2.classList.toggle('open');
       }
     });
+
+    document.addEventListener('click', function (e) {
+      if (window.matchMedia('(max-width: 960px)').matches && cartEl2 && cartEl2.classList.contains('open')) {
+        if (!cartEl2.contains(e.target)) {
+          cartEl2.classList.remove('open');
+        }
+      }
+    });
   }
 
   loadProducts();

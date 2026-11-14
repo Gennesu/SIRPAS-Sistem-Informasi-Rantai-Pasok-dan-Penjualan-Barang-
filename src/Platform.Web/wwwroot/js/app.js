@@ -8,8 +8,10 @@
   const side = $('#sidebar'), scrim = $('#scrim');
   function drawer(open) {
     if (!side) return;
+    if (open) $$('[data-dropdown].open').forEach(function (d) { d.classList.remove('open'); });
     side.classList.toggle('open', open);
     if (scrim) scrim.classList.toggle('show', open);
+    document.body.classList.toggle('drawer-open', open);
   }
   document.addEventListener('click', function (e) {
     if (e.target.closest('[data-toggle-drawer]')) { drawer(!(side && side.classList.contains('open'))); return; }
@@ -71,8 +73,23 @@
   // ---------- Dropdown
   document.addEventListener('click', function (e) {
     const toggle = e.target.closest('[data-dropdown-toggle]');
-    $$('[data-dropdown].open').forEach(function (d) { if (!toggle || !d.contains(toggle)) d.classList.remove('open'); });
-    if (toggle) { toggle.closest('[data-dropdown]').classList.toggle('open'); }
+    const openDropdowns = $$('[data-dropdown].open');
+
+    if (toggle) {
+      const parentDropdown = toggle.closest('[data-dropdown]');
+      openDropdowns.forEach(function (d) {
+        if (d !== parentDropdown) d.classList.remove('open');
+      });
+      if (parentDropdown) parentDropdown.classList.toggle('open');
+      return;
+    }
+
+    // Klik di luar dropdown: tutup semua dropdown yang sedang terbuka
+    openDropdowns.forEach(function (d) {
+      if (!d.contains(e.target)) {
+        d.classList.remove('open');
+      }
+    });
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { $$('[data-dropdown].open').forEach(function (d) { d.classList.remove('open'); }); drawer(false); }
@@ -238,6 +255,21 @@
     document.addEventListener('visibilitychange', scheduleAutoplay);
     scheduleAutoplay();
   })();
+
+  // ---------- Normalisasi koma (,) ke titik (.) pada keyboard desimal Android / Indonesia
+  document.addEventListener('input', function (e) {
+    var target = e.target;
+    if (target && target.tagName === 'INPUT' && target.getAttribute('inputmode') === 'decimal') {
+      if (typeof target.value === 'string' && target.value.includes(',')) {
+        var start = target.selectionStart;
+        var end = target.selectionEnd;
+        target.value = target.value.replace(/,/g, '.');
+        if (start !== null && end !== null) {
+          try { target.setSelectionRange(start, end); } catch (_) {}
+        }
+      }
+    }
+  });
 
   // ---------- Util bersama untuk skrip halaman
   window.fmtRp = function (n) { return 'Rp' + Math.round(n).toLocaleString('id-ID'); };

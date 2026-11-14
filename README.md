@@ -29,7 +29,7 @@ SIRPAS adalah aplikasi web untuk membantu distribusi produk dari **peternak ke a
 
 - **Backend dan web:** C#, ASP.NET Core MVC, Razor, .NET 10.
 - **Akses data:** Entity Framework Core 10.
-- **Database utama:** MySQL atau MariaDB. SQLite dan PostgreSQL juga tersedia sebagai provider alternatif.
+- **Database:** SQLite digunakan otomatis untuk pengembangan lokal. MySQL/MariaDB menjadi pilihan untuk hosting; PostgreSQL juga tersedia.
 - **Peta:** Leaflet dan OpenStreetMap. Tile peta memerlukan internet; tampilan kisi lokal menjadi cadangan.
 - **Arsitektur:** modular monolith; modul berkomunikasi melalui kontrak bersama.
 
@@ -38,36 +38,19 @@ SIRPAS adalah aplikasi web untuk membantu distribusi produk dari **peternak ke a
 ### Persyaratan
 
 - .NET 10 SDK.
-- MySQL atau MariaDB aktif dan dapat diakses aplikasi.
 - Python 3 hanya diperlukan jika ingin memakai peluncur `main.py`.
 
-### 1. Buat database
-
-Buat database kosong bernama `sirpas` melalui phpMyAdmin atau klien MySQL:
-
-```sql
-CREATE DATABASE sirpas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-Atur connection string di **User Secrets** agar kata sandi tidak tersimpan di Git. Contoh berikut memakai XAMPP dengan port MariaDB **3307**:
-
-```powershell
-dotnet user-secrets set "ConnectionStrings:Default" 'Server=127.0.0.1;Port=3307;Database=sirpas;User ID=root;Password=;' --project src/Platform.Web
-```
-
-Sesuaikan port, nama pengguna, dan kata sandi jika konfigurasi MySQL/MariaDB Anda berbeda. Jika menggunakan port standar, biasanya port-nya `3306`. MariaDB 10.4 yang disertakan sejumlah versi XAMPP belum tercantum sebagai versi yang diuji oleh provider database proyek ini; gunakan versi MySQL/MariaDB yang kompatibel jika koneksi atau pembuatan skema gagal.
-
-### 2. Jalankan aplikasi
+### Jalankan aplikasi
 
 Dari folder utama repository:
 
 ```powershell
-dotnet run --project src/Platform.Web
+python main.py
 ```
 
-Buka **http://localhost:5080**. Pada pemakaian pertama, aplikasi membuat skema database dan mengisi data demo. Alternatifnya, jalankan `python main.py`; untuk membuka aplikasi dari perangkat lain di Wi-Fi yang sama, jalankan `python main.py --lan`.
+`main.py` menjalankan aplikasi di **http://localhost:5080**. Jika port itu sedang dipakai, peluncur memilih port kosong berikutnya dan menampilkan alamat yang benar. Pada pemakaian pertama, aplikasi membuat skema database dan mengisi data demo. Untuk membuka aplikasi dari perangkat lain di Wi-Fi yang sama, jalankan `python main.py --lan`. Jika ingin menjalankan tanpa Python, `dotnet run --project src/Platform.Web` juga memakai SQLite melalui profil Development.
 
-Data demo diaktifkan secara bawaan. Aplikasi mempertahankan data ketika dijalankan ulang. Data SQLite lama, jika ada, tidak otomatis dipindahkan ke MySQL/MariaDB.
+Lingkungan Development otomatis memakai SQLite pada `src/Platform.Web/platform-demo-v3.db`; Anda tidak perlu memasang atau menyalakan server database. Data demo diaktifkan secara bawaan dan data lokal tetap ada saat aplikasi dijalankan ulang. Database SQLite lokal terpisah dari database hosting; data lama tidak otomatis dipindahkan.
 
 ## Akun demo utama
 

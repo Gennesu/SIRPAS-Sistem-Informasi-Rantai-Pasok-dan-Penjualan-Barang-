@@ -64,9 +64,9 @@ def get_lan_ipv4_addresses() -> list[str]:
     return usable
 
 
-def print_access_urls(lan_mode: bool) -> None:
+def print_access_urls(lan_mode: bool, port: int) -> None:
     print("Alamat aplikasi:", flush=True)
-    print("  Komputer ini: http://localhost:5080", flush=True)
+    print(f"  Komputer ini: http://localhost:{port}", flush=True)
 
     if not lan_mode:
         print("  Untuk akses dari HP, jalankan: python main.py --lan", flush=True)
@@ -75,10 +75,22 @@ def print_access_urls(lan_mode: bool) -> None:
     addresses = get_lan_ipv4_addresses()
     if addresses:
         for address in addresses:
-            print(f"  Wi-Fi/LAN: http://{address}:5080", flush=True)
+            print(f"  Wi-Fi/LAN: http://{address}:{port}", flush=True)
     else:
         print("  IP jaringan tidak terdeteksi. Periksa alamat IPv4 dengan perintah ipconfig.", flush=True)
     print("  Pastikan HP terhubung ke Wi-Fi yang sama.", flush=True)
+
+
+def find_available_port(start_port: int, lan_mode: bool) -> int:
+    host = "0.0.0.0" if lan_mode else "127.0.0.1"
+    for port in range(start_port, start_port + 100):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as port_socket:
+                port_socket.bind((host, port))
+            return port
+        except OSError:
+            continue
+    raise OSError(f"Tidak ada port kosong mulai dari {start_port}.")
 
 
 def main() -> int:
@@ -101,22 +113,36 @@ def main() -> int:
         return 1
 
     env = os.environ.copy()
+    env["ASPNETCORE_ENVIRONMENT"] = "Development"
     env["NUGET_PACKAGES"] = str(ROOT / ".nuget" / "packages")
+    env["Database__Provider"] = "Sqlite"
+    env["ConnectionStrings__Default"] = "Data Source=platform-demo-v3.db;Cache=Shared;Default Timeout=30"
 
     run_args = list(sys.argv[1:])
     lan_mode = "--lan" in run_args
     if lan_mode:
         run_args.remove("--lan")
-        separator = run_args.index("--") if "--" in run_args else len(run_args)
-        app_args = run_args[separator + 1:]
-        if not any(arg == "--urls" or arg.startswith("--urls=") for arg in app_args):
-            if separator < len(run_args):
-                run_args.insert(separator + 1, "--urls=http://0.0.0.0:5080")
-            else:
-                run_args.extend(["--", "--urls=http://0.0.0.0:5080"])
+    separator = run_args.index("--") if "--" in run_args else len(run_args)
+    app_args = run_args[separator + 1:]
+    has_custom_urls = any(arg == "--urls" or arg.startswith("--urls=") for arg in app_args)
+    port = 5080
+    if not has_custom_urls:
+        try:
+            port = find_available_port(port, lan_mode)
+        except OSError as ex:
+            print(str(ex), file=sys.stderr)
+            return 1
+        if port != 5080:
+            print(f"Port 5080 sedang dipakai; aplikasi memakai port {port}.", flush=True)
+        bind_address = "0.0.0.0" if lan_mode else "localhost"
+        urls_arg = f"--urls=http://{bind_address}:{port}"
+        if separator < len(run_args):
+            run_args.insert(separator + 1, urls_arg)
+        else:
+            run_args.extend(["--", urls_arg])
 
-    command = [dotnet, "run", "--project", str(PROJECT), *run_args]
-    print_access_urls(lan_mode)
+    command = [dotnet, "run", "--project", str(PROJECT), "--no-launch-profile", *run_args]
+    print_access_urls(lan_mode, port)
     try:
         return subprocess.call(command, cwd=PROJECT.parent, env=env)
     except KeyboardInterrupt:

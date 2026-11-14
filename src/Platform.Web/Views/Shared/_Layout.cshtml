@@ -224,23 +224,26 @@ else
         </div>
     </div>
 
-    <nav class="bottom-nav" aria-label="Menu cepat">
-        @foreach (var b in bottom)
-        {
-            var count = BadgeFor(b.Badge, notes);
-            var sameController = string.Equals(b.Controller, controller, StringComparison.OrdinalIgnoreCase);
-            var hasExactBottomRoute = bottom.Any(item => string.Equals(item.Controller, controller, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(item.Action, action, StringComparison.OrdinalIgnoreCase));
-            var active = sameController && (string.Equals(b.Action, action, StringComparison.OrdinalIgnoreCase)
-                || (!hasExactBottomRoute && (b.Action is "Index" or "Dashboard")));
-            <a href="@Url.Action(b.Action, b.Controller)" class="@(active ? "active" : "")">
-                @UiIcons.Svg(b.Icon, 22)
-                <span>@b.Text</span>
-                @if (count > 0) { <span class="badge-dot">@(count > 9 ? "9+" : count.ToString())</span> }
-            </a>
-        }
-        <button type="button" data-toggle-drawer>@UiIcons.Svg("menu", 22)<span>Menu</span></button>
-    </nav>
+    @if (ViewData["PageClass"] as string != "pos-page")
+    {
+        <nav class="bottom-nav" aria-label="Menu cepat">
+            @foreach (var b in bottom)
+            {
+                var count = BadgeFor(b.Badge, notes);
+                var sameController = string.Equals(b.Controller, controller, StringComparison.OrdinalIgnoreCase);
+                var hasExactBottomRoute = bottom.Any(item => string.Equals(item.Controller, controller, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(item.Action, action, StringComparison.OrdinalIgnoreCase));
+                var active = sameController && (string.Equals(b.Action, action, StringComparison.OrdinalIgnoreCase)
+                    || (!hasExactBottomRoute && (b.Action is "Index" or "Dashboard")));
+                <a href="@Url.Action(b.Action, b.Controller)" class="@(active ? "active" : "")">
+                    @UiIcons.Svg(b.Icon, 22)
+                    <span>@b.Text</span>
+                    @if (count > 0) { <span class="badge-dot">@(count > 9 ? "9+" : count.ToString())</span> }
+                </a>
+            }
+            <button type="button" data-toggle-drawer>@UiIcons.Svg("menu", 22)<span>Menu</span></button>
+        </nav>
+    }
 
     <dialog class="modal" id="confirm-dialog">
         <div class="modal-head"><h2 id="confirm-title">Yakin?</h2></div>
