@@ -27,6 +27,17 @@
   var cashBox = $('cash-box');
   var quickEl = $('quick-cash');
   var cartEl2 = $('cart');
+  var toastEl = $('toasts');
+  var cartMedia = window.matchMedia('(max-width: 960px)');
+
+  if (toastEl) toastEl.classList.add('pos-toasts');
+
+  function setMobileCartOpen(open) {
+    if (!cartEl2) return;
+    var shouldOpen = cartMedia.matches && Boolean(open);
+    cartEl2.classList.toggle('open', shouldOpen);
+    document.body.classList.toggle('pos-cart-open', shouldOpen);
+  }
 
   var mockPaymentBox = $('mock-payment');
   var qrisPanel = $('qris-panel');
@@ -660,19 +671,23 @@
 
   var head = $('cart-head');
 
-  if (head) {
+  if (head && cartEl2) {
     head.addEventListener('click', function () {
-      if (window.matchMedia('(max-width: 960px)').matches) {
-        cartEl2.classList.toggle('open');
-      }
+      if (cartMedia.matches) setMobileCartOpen(!cartEl2.classList.contains('open'));
     });
 
     document.addEventListener('click', function (e) {
-      if (window.matchMedia('(max-width: 960px)').matches && cartEl2 && cartEl2.classList.contains('open')) {
-        if (!cartEl2.contains(e.target)) {
-          cartEl2.classList.remove('open');
+      if (cartMedia.matches && cartEl2.classList.contains('open')) {
+        var eventPath = typeof e.composedPath === 'function' ? e.composedPath() : [];
+        var clickedCart = cartEl2.contains(e.target) || eventPath.indexOf(cartEl2) !== -1;
+        if (!clickedCart && (eventPath.length || e.target.isConnected)) {
+          setMobileCartOpen(false);
         }
       }
+    });
+
+    window.addEventListener('resize', function () {
+      if (!cartMedia.matches) setMobileCartOpen(false);
     });
   }
 

@@ -6,12 +6,23 @@
 
   // ---------- Sidebar (ponsel)
   const side = $('#sidebar'), scrim = $('#scrim');
+  const drawerMedia = window.matchMedia('(max-width: 960px)');
   function drawer(open) {
     if (!side) return;
-    if (open) $$('[data-dropdown].open').forEach(function (d) { d.classList.remove('open'); });
-    side.classList.toggle('open', open);
-    if (scrim) scrim.classList.toggle('show', open);
-    document.body.classList.toggle('drawer-open', open);
+    const mobile = drawerMedia.matches;
+    const shouldOpen = mobile && Boolean(open);
+    if (shouldOpen) $$('[data-dropdown].open').forEach(function (d) { d.classList.remove('open'); });
+    side.classList.toggle('open', shouldOpen);
+    side.inert = mobile && !shouldOpen;
+    if (mobile) side.setAttribute('aria-hidden', String(!shouldOpen));
+    else side.removeAttribute('aria-hidden');
+    if (scrim) scrim.classList.toggle('show', shouldOpen);
+    document.body.classList.toggle('drawer-open', shouldOpen);
+  }
+  if (side) {
+    drawer(false);
+    if (drawerMedia.addEventListener) drawerMedia.addEventListener('change', function () { drawer(false); });
+    else drawerMedia.addListener(function () { drawer(false); });
   }
   document.addEventListener('click', function (e) {
     if (e.target.closest('[data-toggle-drawer]')) { drawer(!(side && side.classList.contains('open'))); return; }

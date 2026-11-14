@@ -39,22 +39,24 @@
         <div><h4>@(Model.IsLivestockSale ? "Serah terima" : "Pengiriman")</h4><b>@OrderLabels.Fulfillment(Model.Fulfillment)</b>@if (Model.Fulfillment == FulfillmentType.Delivery && Model.DeliveryDistanceKm is double dk) { <text> · @dk.ToString("0.0") km</text> }<br />@if (!string.IsNullOrEmpty(Model.Note)) { <span>Catatan: @Model.Note</span> }</div>
     </div>
 
-    <table>
-        <thead><tr><th style="width:34px">No</th><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Jumlah (Rp)</th></tr></thead>
-        <tbody>
-        @foreach (var i in Model.Items)
-        {
-            n++;
-            <tr>
-                <td>@n</td>
-                <td>@i.ProductName@if (!string.IsNullOrEmpty(i.BundleName)) { <div class="small" style="color:#555">Paket anti-mubazir: @i.BundleName</div> }@if (!string.IsNullOrEmpty(i.ExpiryText)) { <div class="small" style="color:#555">@i.ExpiryText</div> }</td>
-                <td class="r">@i.QtyPack @i.UnitName</td>
-                <td class="r">@Rupiah.Format(i.UnitPrice)</td>
-                <td class="r">@Rupiah.Format(i.Subtotal)</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <div class="nota-table-wrap">
+        <table>
+            <thead><tr><th style="width:34px">No</th><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga</th><th class="r">Jumlah (Rp)</th></tr></thead>
+            <tbody>
+            @foreach (var i in Model.Items)
+            {
+                n++;
+                <tr>
+                    <td>@n</td>
+                    <td>@i.ProductName@if (!string.IsNullOrEmpty(i.BundleName)) { <div class="small" style="color:#555">Paket anti-mubazir: @i.BundleName</div> }@if (!string.IsNullOrEmpty(i.ExpiryText)) { <div class="small" style="color:#555">@i.ExpiryText</div> }</td>
+                    <td class="r">@i.QtyPack @i.UnitName</td>
+                    <td class="r">@Rupiah.Format(i.UnitPrice)</td>
+                    <td class="r">@Rupiah.Format(i.Subtotal)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
 
     <div class="sum">
         <div class="r-row"><span>Subtotal</span><span>@Rupiah.Format(Model.Subtotal)</span></div>
