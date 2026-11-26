@@ -49,8 +49,23 @@
                 <div class="form-grid">
                     <div class="field"><label asp-for="OwnerName"></label><input asp-for="OwnerName" autocomplete="name" /><span asp-validation-for="OwnerName" class="field-validation-error"></span></div>
                     <div class="field"><label asp-for="Email"></label><input asp-for="Email" type="email" autocomplete="email" /><span asp-validation-for="Email" class="field-validation-error"></span></div>
-                    <div class="field"><label asp-for="Password"></label><input asp-for="Password" autocomplete="new-password" /><span class="hint">Minimal 8 karakter.</span><span asp-validation-for="Password" class="field-validation-error"></span></div>
-                    <div class="field"><label asp-for="ConfirmPassword"></label><input asp-for="ConfirmPassword" autocomplete="new-password" /><span asp-validation-for="ConfirmPassword" class="field-validation-error"></span></div>
+                    <div class="field">
+                        <label asp-for="Password"></label>
+                        <div class="password-input">
+                            <input asp-for="Password" autocomplete="new-password" spellcheck="false" autocapitalize="none" autocorrect="off" />
+                            <partial name="_PasswordToggle" model='(nameof(Model.Password), "kata sandi")' />
+                        </div>
+                        <span class="hint">Minimal 8 karakter.</span>
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+                    <div class="field">
+                        <label asp-for="ConfirmPassword"></label>
+                        <div class="password-input">
+                            <input asp-for="ConfirmPassword" autocomplete="new-password" spellcheck="false" autocapitalize="none" autocorrect="off" />
+                            <partial name="_PasswordToggle" model='(nameof(Model.ConfirmPassword), "konfirmasi kata sandi")' />
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="field-validation-error"></span>
+                    </div>
                 </div>
 
                 <h3 class="mb-1 mt-2">Data usaha</h3>

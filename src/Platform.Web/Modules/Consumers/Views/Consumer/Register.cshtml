@@ -29,7 +29,14 @@
                 <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
                 <div class="field"><label asp-for="FullName"></label><input asp-for="FullName" autocomplete="name" /><span asp-validation-for="FullName" class="field-validation-error"></span></div>
                 <div class="field"><label asp-for="Email"></label><input asp-for="Email" type="email" autocomplete="email" /><span asp-validation-for="Email" class="field-validation-error"></span></div>
-                <div class="field"><label asp-for="Password"></label><input asp-for="Password" type="password" autocomplete="new-password" /><span asp-validation-for="Password" class="field-validation-error"></span></div>
+                <div class="field">
+                    <label asp-for="Password"></label>
+                    <div class="password-input">
+                        <input asp-for="Password" type="password" autocomplete="new-password" spellcheck="false" autocapitalize="none" autocorrect="off" />
+                        <partial name="_PasswordToggle" model='(nameof(Model.Password), "kata sandi")' />
+                    </div>
+                    <span asp-validation-for="Password" class="field-validation-error"></span>
+                </div>
                 <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" inputmode="tel" placeholder="08xxxxxxxxxx" /><span asp-validation-for="Phone" class="field-validation-error"></span></div>
                 <div class="field"><label asp-for="Address"></label><input asp-for="Address" autocomplete="street-address" /><span asp-validation-for="Address" class="field-validation-error"></span></div>
                 <div class="grid grid-2">

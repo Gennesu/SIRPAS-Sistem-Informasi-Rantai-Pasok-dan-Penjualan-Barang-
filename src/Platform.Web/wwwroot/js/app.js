@@ -143,6 +143,20 @@
       .then(function (ok) { if (ok) { form.dataset.confirmed = '1'; if (e.submitter && form.requestSubmit) form.requestSubmit(e.submitter); else form.submit(); } });
   });
 
+  // ---------- Tampilkan atau sembunyikan kata sandi
+  $$('[data-password-toggle]').forEach(function (button) {
+    const input = document.getElementById(button.getAttribute('aria-controls'));
+    if (!input) return;
+
+    const label = button.dataset.passwordToggle;
+    button.addEventListener('click', function () {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.setAttribute('aria-label', (show ? 'Sembunyikan ' : 'Tampilkan ') + label);
+    });
+    button.hidden = false;
+  });
+
   // ---------- Cegah kirim ganda & filter otomatis
   document.addEventListener('submit', function (e) {
     const form = e.target;

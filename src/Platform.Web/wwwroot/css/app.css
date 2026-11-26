@@ -281,6 +281,17 @@ input[type=checkbox], input[type=radio] { width: 20px; height: 20px; accent-colo
 .input-group > input, .input-group > select { flex: 1 1 0; min-width: 0; }
 .input-group .addon.end { border-right: 1.5px solid var(--line-2); border-left: 0; border-radius: 0 12px 12px 0; }
 .input-group input.has-end { border-radius: 0; }
+.password-input { position: relative; }
+.password-input > input { display: block; padding-inline-end: 48px; }
+.password-input:has(> .password-toggle:not([hidden])) > input::-ms-reveal { display: none; }
+.password-toggle:not([hidden]) {
+  position: absolute; inset-block: 1px; inset-inline-end: 1px; inline-size: 44px;
+  display: grid; place-items: center; border: 0; border-radius: 11px;
+  background: transparent; color: var(--ink-3); cursor: pointer;
+}
+.password-toggle:hover { color: var(--ink); background: var(--surface-2); }
+.password-input > input[type=password] + .password-toggle .password-icon-hide,
+.password-input > input[type=text] + .password-toggle .password-icon-show { display: none; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
 .form-grid .full { grid-column: 1 / -1; }
 .form-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
