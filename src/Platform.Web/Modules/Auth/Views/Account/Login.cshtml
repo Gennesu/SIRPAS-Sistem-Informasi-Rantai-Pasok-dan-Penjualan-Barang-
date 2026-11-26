@@ -44,7 +44,11 @@
                 </div>
                 <div class="field">
                     <label asp-for="Password"></label>
-                    <input asp-for="Password" autocomplete="current-password" placeholder="Kata sandi" />
+                    <div class="password-input">
+                        <input asp-for="Password" autocomplete="current-password" placeholder="Kata sandi"
+                               spellcheck="false" autocapitalize="none" autocorrect="off" />
+                        <partial name="_PasswordToggle" model='(nameof(Model.Password), "kata sandi")' />
+                    </div>
                     <span asp-validation-for="Password" class="field-validation-error"></span>
                 </div>
                 <label class="check mb-2"><input asp-for="RememberMe" /> Ingat saya di perangkat ini</label>
